@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -276,6 +277,71 @@
             '3200m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBwM8kOEimN_wZH1wz9AOdDalBGnqIMau3pya67oGsFJZHKzfWUsQ8XWLc1We8xtX-Vylj09kEZkxP/pub?gid=1993866337&single=true&output=csv'
         };
 
+        // ── XC Season Meet History ──────────────────────────────────────────────
+        // Paste the published CSV URL for your All_Time_History tab here.
+        // In Google Sheets: File → Share → Publish to web → select "All_Time_History"
+        // tab → CSV → Copy the link and replace the placeholder below.
+        const XC_ALL_TIME_HISTORY_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-3btJXTHknwy-ko0O1pinK71_v5hS51PDH-U3yoM2QK2hIeVJAfnIbLSDKSsrVzNjzT-LyIYlYghl/pub?gid=1287484724&single=true&output=csv";
+
+        // Cache so we only fetch once per page load
+        let xcHistoryCache = null;
+        let xcHistoryFetchPromise = null;
+
+        async function getXCHistoryData() {
+            if (xcHistoryCache) return xcHistoryCache;
+            if (xcHistoryFetchPromise) return xcHistoryFetchPromise;
+
+            xcHistoryFetchPromise = (async () => {
+                try {
+                    let res = await fetch(XC_ALL_TIME_HISTORY_URL + '&cachebust=' + Math.floor(Date.now() / 60000));
+                    if (!res.ok) throw new Error('fetch failed');
+                    let text = await res.text();
+                    let rows = parseCSVText(text);
+
+                    // Build a structure: { "2025": { meetHeaders: [...], athletes: { "Last, First": [...times] } }, ... }
+                    let parsed = {};
+                    let currentYear = null;
+                    let currentHeaders = [];
+
+                    for (let r = 0; r < rows.length; r++) {
+                        let row = rows[r];
+                        if (!row || row.length === 0) continue;
+
+                        let firstCell = (row[0] || '').trim();
+
+                        // Detect a year-marker row: col A is a 4-digit year (e.g. "2025")
+                        // and col B is a meet header row (contains "Name" or first meet name)
+                        if (/^\d{4}$/.test(firstCell)) {
+                            currentYear = firstCell;
+                            // The next column(s) in this same row are the meet headers from col B onward
+                            currentHeaders = row.slice(1).map(h => (h || '').trim());
+                            parsed[currentYear] = { meetHeaders: currentHeaders, athletes: {} };
+                            continue;
+                        }
+
+                        // If we have a current year and this row has an athlete name in col B (col A is blank or also name)
+                        if (currentYear && parsed[currentYear]) {
+                            // Col A = blank (year marker took it), Col B = athlete name, Col C+ = times
+                            // But depending on formula structure col A might be athlete name directly
+                            let athleteName = firstCell || (row[1] || '').trim();
+                            if (!athleteName || athleteName.toLowerCase() === 'name' || athleteName.toLowerCase() === 'athlete') continue;
+                            // Skip the Best/Avg columns by ignoring -- we just store all columns
+                            let times = row.slice(1).map(t => (t || '').trim());
+                            parsed[currentYear].athletes[athleteName] = times;
+                        }
+                    }
+
+                    xcHistoryCache = parsed;
+                    return parsed;
+                } catch(e) {
+                    console.error('XC History fetch error:', e);
+                    return null;
+                }
+            })();
+
+            return xcHistoryFetchPromise;
+        }
+
         let athletes = {};
         let rankingsCache = {}; 
         let highlightedAthlete = null;
@@ -500,77 +566,98 @@
             }, 350);
         }
 
-        // New Asynchronous Function to parse horizontal multi-tabs into vertical elements
+        // ── Meet-by-Meet History ────────────────────────────────────────────────
+        // Loads from the single All_Time_History tab (one fetch, cached for the
+        // whole session).  The tab layout expected:
+        //   Row with col-A = "YYYY"  →  season header; col B onward = meet names
+        //   Subsequent rows          →  col A = athlete name, col B onward = times
         async function loadAthleteMeetHistory(athleteName, targetGridId) {
             const gridContainer = document.getElementById(targetGridId);
             if (!gridContainer) return;
 
-            const masterSpreadsheetBaseUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTb2bSDnf7t82eum6cnZcu-VTriEiqQFo5rkK5UsXujL7Qv3cpNFf2pLFYvDD0aNHRvbn3aWl5cEu8z/pub?output=csv";
-            
-            let currentYear = 2026;
-            let historicalYears = [];
-            for (let y = currentYear; y >= 1982; y--) {
-                historicalYears.push(y);
+            // Show a proper loading state
+            gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">⏳ Loading season history…</p>`;
+
+            // Check if URL has been configured
+            if (!XC_ALL_TIME_HISTORY_URL || XC_ALL_TIME_HISTORY_URL.includes("YOUR_ALL_TIME")) {
+                gridContainer.innerHTML = `<p style="font-size:11px;color:#b45309;text-align:center;padding:12px;">⚠️ Set <strong>XC_ALL_TIME_HISTORY_URL</strong> in the code to enable meet history.</p>`;
+                return;
             }
+
+            const historyData = await getXCHistoryData();
+
+            if (!historyData) {
+                gridContainer.innerHTML = `<p style="font-size:11px;color:#991b1b;text-align:center;padding:12px;">Could not load season history. Check the sheet URL or publishing settings.</p>`;
+                return;
+            }
+
+            // Normalize the search name for fuzzy matching (last-name-first or first-last both work)
+            const normSearch = athleteName.toLowerCase().replace(/[^a-z]/g, '');
 
             let compiledGridHtml = "";
             let foundAnyData = false;
 
-            for (let year of historicalYears) {
-                try {
-                    let tabUrl = `${masterSpreadsheetBaseUrl}&sheet=${year}`;
-                    let res = await fetch(tabUrl);
-                    if (!res.ok) continue;
-                    
-                    let text = await res.text();
-                    let rows = parseCSVText(text);
-                    if (rows.length < 3) continue;
+            // Iterate years newest-first
+            const sortedYears = Object.keys(historyData).sort((a, b) => b - a);
 
-                    let meetHeaders = rows[0]; 
-                    let runnerRow = rows.find(r => r[0] && r[0].toLowerCase().startsWith(athleteName.toLowerCase().split('/')[0]));
-                    
-                    if (runnerRow) {
-                        let meetElementsHtml = "";
-                        
-                        for (let colIdx = 1; colIdx < meetHeaders.length; colIdx++) {
-                            let meetName = meetHeaders[colIdx];
-                            let timeValue = runnerRow[colIdx];
+            for (let year of sortedYears) {
+                const yearData = historyData[year];
+                const { meetHeaders, athletes: yearAthletes } = yearData;
 
-                            if (meetName && timeValue && timeValue !== "DNR" && timeValue !== "DNF" && timeValue.trim() !== "") {
-                                if (meetName.includes("Season Positions") || meetName.includes("Best/AVG")) continue;
-                                
-                                foundAnyData = true;
-                                meetElementsHtml += `
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; padding: 4px 6px; border-bottom: 1px dashed #e2e8f0;">
-                                        <span style="font-weight: 600; color: var(--text); max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${meetName}</span>
-                                        <span style="font-weight: 800; color: #2563eb;">${timeValue}</span>
-                                    </div>
-                                `;
-                            }
-                        }
+                // Find this athlete's row — try exact match first, then fuzzy
+                let matchedKey = Object.keys(yearAthletes).find(k => k.toLowerCase() === athleteName.toLowerCase());
+                if (!matchedKey) {
+                    matchedKey = Object.keys(yearAthletes).find(k => {
+                        let norm = k.toLowerCase().replace(/[^a-z]/g, '');
+                        return norm === normSearch || norm.includes(normSearch) || normSearch.includes(norm);
+                    });
+                }
+                if (!matchedKey) continue;
 
-                        if (meetElementsHtml !== "") {
-                            compiledGridHtml += `
-                                <div style="margin-bottom: 8px; border: 1px solid var(--border); border-radius: 6px; background: white; overflow: hidden;">
-                                    <div style="background: var(--primary-light); color: var(--accent); padding: 3px 8px; font-size: 11px; font-weight: 800; display: flex; justify-content: space-between;">
-                                        <span>${year} CROSS COUNTRY SEASON</span>
-                                    </div>
-                                    <div style="padding: 2px 0;">
-                                        ${meetElementsHtml}
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    }
-                } catch (err) {
-                    console.error(`Error processing sheet year ${year}:`, err);
+                const times = yearAthletes[matchedKey];
+                let meetElementsHtml = "";
+                let seasonPR = null;
+
+                for (let colIdx = 0; colIdx < meetHeaders.length; colIdx++) {
+                    let meetName = (meetHeaders[colIdx] || '').trim();
+                    let timeValue = (times[colIdx] || '').trim();
+
+                    // Skip blank, placeholder, summary columns
+                    if (!meetName || !timeValue) continue;
+                    if (meetName.toLowerCase().includes('best') || meetName.toLowerCase().includes('avg') ||
+                        meetName.toLowerCase().includes('average') || meetName.toLowerCase().includes('season pos')) continue;
+                    if (timeValue === 'DNR' || timeValue === 'DNF' || timeValue === '--' ||
+                        timeValue === '0' || timeValue === '0.0') continue;
+
+                    let timeSecs = cleanTimeToSeconds(timeValue);
+                    if (seasonPR === null || timeSecs < cleanTimeToSeconds(seasonPR)) seasonPR = timeValue;
+
+                    foundAnyData = true;
+                    meetElementsHtml += `
+                        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 8px;border-bottom:1px dashed #e2e8f0;">
+                            <span style="font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">${meetName}</span>
+                            <span style="font-weight:800;color:#2563eb;white-space:nowrap;">${timeValue}</span>
+                        </div>
+                    `;
+                }
+
+                if (meetElementsHtml !== "") {
+                    compiledGridHtml += `
+                        <div style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:white;overflow:hidden;">
+                            <div style="background:var(--primary);color:var(--accent);padding:5px 10px;font-size:11px;font-weight:800;display:flex;justify-content:space-between;align-items:center;">
+                                <span>📅 ${year} Cross Country Season</span>
+                                ${seasonPR ? `<span style="background:var(--accent);color:var(--primary);padding:1px 6px;border-radius:4px;font-size:10px;">Season PR: ${seasonPR}</span>` : ''}
+                            </div>
+                            <div>${meetElementsHtml}</div>
+                        </div>
+                    `;
                 }
             }
 
             if (foundAnyData) {
                 gridContainer.innerHTML = compiledGridHtml;
             } else {
-                gridContainer.innerHTML = `<p style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px;">No individual meet items found for this runner since 1982.</p>`;
+                gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">No meet history found for this runner.</p>`;
             }
         }
 
@@ -637,9 +724,9 @@
                         
                         <!-- Embedded Historical Meet-by-Meet Layout Content -->
                         <div class="meet-history-section" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px;">
-                            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--perry-gray); margin-bottom: 6px; letter-spacing: 0.3px;">Meet-by-Meet Career Grid</h4>
-                            <div class="meet-history-vertical-grid" id="history-grid-${btoa(athlete.name)}" style="max-height: 200px; overflow-y: auto; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border); padding: 4px;">
-                                <p style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px;">Loading historical meet times...</p>
+                            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--perry-gray); margin-bottom: 6px; letter-spacing: 0.3px; font-weight: 800;">📋 Meet-by-Meet XC History</h4>
+                            <div class="meet-history-vertical-grid" id="history-grid-${btoa(athlete.name)}" style="max-height: 280px; overflow-y: auto; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border); padding: 4px;">
+                                <p style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px;">Loading historical meet times…</p>
                             </div>
                         </div>
 
