@@ -78,6 +78,26 @@
         .rank-table tr.highlighted-row { background: #fffbeb; }
         .rank-table tr.highlighted-row:hover { background: #fef3c7; }
 
+        /* NEW: Custom Multi-Row Career View Styling */
+        .career-list-view { display: flex; flex-direction: column; gap: 10px; }
+        .career-row-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: background 0.15s; }
+        .career-row-card:hover { background: #f8fafc; }
+        .career-row-card.highlighted-card { background: #fffbeb; border-color: #fde68a; }
+        .career-row-card.highlighted-card:hover { background: #fef3c7; }
+        
+        .career-main-line { display: flex; align-items: center; justify-content: space-between; }
+        .career-left-meta { display: flex; align-items: center; gap: 10px; }
+        .career-num { font-size: 14px; font-weight: 800; color: var(--perry-gray); min-width: 24px; }
+        .career-name { font-size: 15px; font-weight: 800; color: var(--primary); }
+        .career-grad { font-size: 12px; font-weight: 600; color: var(--perry-gray); }
+        .career-pr-pill { font-size: 13px; font-weight: 800; background: var(--accent); color: var(--primary); padding: 3px 8px; border-radius: 6px; }
+        
+        .career-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: #f8fafc; padding: 6px; border-radius: 8px; border: 1px solid #f1f5f9; }
+        .career-block { background: white; border: 1px solid #e2e8f0; padding: 4px 2px; border-radius: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center; min-height: 44px; }
+        .career-block.is-pr-year { border: 1.5px solid #b45309; background: #fffbeb; }
+        .career-lbl { font-size: 9px; font-weight: 700; color: var(--perry-gray); text-transform: uppercase; margin-bottom: 2px; }
+        .career-val { font-size: 10px; font-weight: 700; color: var(--text); word-break: break-all; line-height: 1.1; }
+
         /* Floating Trigger Action for Search Mode */
         .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; transition: transform 0.2s; }
         .search-trigger-fab:active { transform: scale(0.9); }
@@ -181,6 +201,7 @@
             <div class="filter-row">
                 <select id="leaderboardRankType" class="leaderboard-select" onchange="handleRankTypeChange()">
                     <option value="PR">All-Time Best (Career PR)</option>
+                    <option value="CAREER_ALL">Show Full Career Progressions 📋</option>
                     <option value="9th">9th Grade Standings</option>
                     <option value="10th">10th Grade Standings</option>
                     <option value="11th">11th Grade Standings</option>
@@ -195,7 +216,8 @@
             </div>
         </div>
         
-        <table class="rank-table">
+        <!-- Standard Data Table (Used for Single-Time Lists) -->
+        <table class="rank-table" id="standardRankTable">
             <thead>
                 <tr>
                     <th style="width: 45px; font-weight:700;">#</th>
@@ -206,6 +228,9 @@
             </thead>
             <tbody id="leaderboardBody"></tbody>
         </table>
+
+        <!-- Custom Comprehensive Career View Container (Swapped via JS) -->
+        <div id="careerProgressiveView" class="career-list-view" style="display: none;"></div>
     </div>
 
     <script>
@@ -256,14 +281,12 @@
             return (parseInt(parts[0]) * 60) + parseFloat(parts[1]);
         }
 
-        // Extracts calendar year out of string values like "16:22.40 (2024)"
         function extractYearFromTimeValue(timeValueStr) {
             if (!timeValueStr || !timeValueStr.includes('(')) return null;
             let matches = timeValueStr.match(/\((\d{4})\)/);
             return matches ? matches[1] : null;
         }
 
-        // Sweeps data engine to look for all recorded seasons to build year options list
         function populateSeasonYearDropdown() {
             let yearSet = new Set();
             Object.values(athletes).forEach(athlete => {
@@ -280,7 +303,7 @@
             const yearSelector = document.getElementById('leaderboardSeasonYear');
             yearSelector.innerHTML = '';
             
-            let sortedYears = Array.from(yearSet).sort((a, b) => b - a); // Newest season years on top
+            let sortedYears = Array.from(yearSet).sort((a, b) => b - a);
             
             if (sortedYears.length === 0) {
                 let currentYear = new Date().getFullYear();
@@ -298,11 +321,21 @@
         function handleRankTypeChange() {
             const rankType = document.getElementById('leaderboardRankType').value;
             const yearSelector = document.getElementById('leaderboardSeasonYear');
+            const standardTable = document.getElementById('standardRankTable');
+            const careerView = document.getElementById('careerProgressiveView');
             
             if (rankType === 'SEASON_YEAR') {
                 yearSelector.style.display = 'block';
             } else {
                 yearSelector.style.display = 'none';
+            }
+
+            if (rankType === 'CAREER_ALL') {
+                standardTable.style.display = 'none';
+                careerView.style.display = 'flex';
+            } else {
+                standardTable.style.display = 'table';
+                careerView.style.display = 'none';
             }
             renderLeaderboard();
         }
@@ -363,9 +396,10 @@
             renderLeaderboard();
             
             setTimeout(() => {
-                const row = document.getElementById(`row-${btoa(name)}`);
-                if (row) {
-                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const elementId = `row-${btoa(name)}`;
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } else {
                     showMessage(`Highlighted ${name}. Note: They aren't ranked in the currently chosen filters.`);
                 }
@@ -451,11 +485,83 @@
             const eventType = document.getElementById('leaderboardEvent').value;
             const rankType = document.getElementById('leaderboardRankType').value;
             const tbody = document.getElementById('leaderboardBody');
+            const careerContainer = document.getElementById('careerProgressiveView');
+            
             tbody.innerHTML = '';
+            careerContainer.innerHTML = '';
 
+            // Gather runners who have a valid PR on file for sorting basis
+            let sortedPRList = Object.values(athletes)
+                .filter(a => a[eventType] && a[eventType]['PR'] && a[eventType]['PR'] !== 'NT' && a[eventType]['PR'] !== '' && a[eventType]['PR'] !== '--')
+                .sort((a, b) => cleanTimeToSeconds(a[eventType]['PR']) - cleanTimeToSeconds(b[eventType]['PR']));
+
+            // ==========================================
+            // OPTION A: COMPREHENSIVE CAREER VIEW MODE
+            // ==========================================
+            if (rankType === 'CAREER_ALL') {
+                if (sortedPRList.length === 0) {
+                    careerContainer.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:30px;font-weight:600;">No career charts found on file.</p>';
+                    return;
+                }
+
+                sortedPRList.forEach((athlete, index) => {
+                    let card = document.createElement('div');
+                    card.id = `row-${btoa(athlete.name)}`;
+                    card.className = 'career-row-card';
+                    if (highlightedAthlete === athlete.name) {
+                        card.className += ' highlighted-card';
+                    }
+
+                    // On-click flips open search system profile
+                    card.setAttribute('onclick', `highlightedAthlete="${athlete.name.replace(/"/g, '&quot;')}"; renderLeaderboard(); toggleDrawer(true); document.getElementById('searchInput').value="${athlete.name.replace(/"/g, '&quot;')}"; renderRoster();`);
+
+                    let evData = athlete[eventType];
+                    let prSecs = cleanTimeToSeconds(evData['PR']);
+
+                    // Interior Helper function to see which block matches lifetime PR
+                    let checkIsPR = (timeVal) => {
+                        return (timeVal && timeVal !== '--' && cleanTimeToSeconds(timeVal) === prSecs);
+                    };
+
+                    let yrDisp = athlete.gradYear ? `'${String(athlete.gradYear).slice(-2)}` : '--';
+
+                    card.innerHTML = `
+                        <div class="career-main-line">
+                            <div class="career-left-meta">
+                                <span class="career-num">${index + 1}</span>
+                                <span class="career-name">${athlete.name} <span class="career-grad">${yrDisp}</span></span>
+                            </div>
+                            <span class="career-pr-pill">PR: ${evData['PR']}</span>
+                        </div>
+                        <div class="career-grid">
+                            <div class="career-block ${checkIsPR(evData['9th']) ? 'is-pr-year' : ''}">
+                                <div class="career-lbl">9th</div>
+                                <div class="career-val">${evData['9th'].split('(')[0].trim()}</div>
+                            </div>
+                            <div class="career-block ${checkIsPR(evData['10th']) ? 'is-pr-year' : ''}">
+                                <div class="career-lbl">10th</div>
+                                <div class="career-val">${evData['10th'].split('(')[0].trim()}</div>
+                            </div>
+                            <div class="career-block ${checkIsPR(evData['11th']) ? 'is-pr-year' : ''}">
+                                <div class="career-lbl">11th</div>
+                                <div class="career-val">${evData['11th'].split('(')[0].trim()}</div>
+                            </div>
+                            <div class="career-block ${checkIsPR(evData['12th']) ? 'is-pr-year' : ''}">
+                                <div class="career-lbl">12th</div>
+                                <div class="career-val">${evData['12th'].split('(')[0].trim()}</div>
+                            </div>
+                        </div>
+                    `;
+                    careerContainer.appendChild(card);
+                });
+                return;
+            }
+
+            // ==========================================
+            // OPTION B: STANDARD TABLE BREAKDOWN ROUTINES
+            // ==========================================
             let list = [];
 
-            // CALENDAR YEAR ROUTINE: Scan all 4 grade columns for data points matching selected season year
             if (rankType === 'SEASON_YEAR') {
                 const targetYear = document.getElementById('leaderboardSeasonYear').value;
                 document.getElementById('rankHeaderTime').innerText = targetYear + ' Season';
@@ -465,7 +571,6 @@
                         let evData = athlete[eventType];
                         let matchedTimeStr = null;
 
-                        // Check each grade level for a time matching the chosen calendar year
                         ['9th', '10th', '11th', '12th'].forEach(grade => {
                             if (extractYearFromTimeValue(evData[grade]) === targetYear) {
                                 matchedTimeStr = evData[grade];
@@ -473,10 +578,7 @@
                         });
 
                         if (matchedTimeStr) {
-                            // Strip out parenthetical year tag so table looks tidy
                             let displayTime = matchedTimeStr.split('(')[0].trim();
-                            
-                            // Make a shadow copy of athlete structure to inject calculated display time
                             list.push({
                                 name: athlete.name,
                                 gradYear: athlete.gradYear,
@@ -485,12 +587,9 @@
                         }
                     }
                 });
-
-                // Sort calendar year times fastest to slowest
                 list.sort((a, b) => cleanTimeToSeconds(a.calculatedDisplayTime) - cleanTimeToSeconds(b.calculatedDisplayTime));
 
             } else {
-                // NORMAL GRADE-LEVEL BREAKDOWN ROUTINE
                 document.getElementById('rankHeaderTime').innerText = rankType === 'PR' ? 'Career PR' : rankType + ' Time';
 
                 let rawList = Object.values(athletes)
@@ -653,7 +752,6 @@
             }
         }
 
-        // Initialize setup on first pass loading
         if (Object.keys(athletes).length > 0) {
             populateSeasonYearDropdown();
         }
