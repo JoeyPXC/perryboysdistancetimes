@@ -52,12 +52,13 @@
         .filter-row { display: flex; gap: 8px; width: 100%; }
         .leaderboard-select { flex: 1; padding: 12px; border-radius: 10px; border: 2px solid var(--border); font-size: 14px; font-weight: 700; background-color: white; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         
-        /* STANDINGS GRID TABLE LAYOUT FIXES - ADDRESSED 3-DIGIT TRUNCATION OPTIMIZATION */
+        /* STANDINGS GRID TABLE LAYOUT FIXES */
         .rank-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); table-layout: fixed; }
         .rank-table th, .rank-table td { padding: 10px 8px; text-align: left; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         .rank-table th { background: var(--primary); color: white; }
         
-        .col-rank { width: 44px; font-weight: 700; text-align: center; } /* Adjusted from 35px to support high volume counts cleanly */
+        /* Fixed Column widths to accommodate rankings beyond 99 safely without truncation */
+        .col-rank { width: 48px; font-weight: 700; text-align: center; }
         .col-grad { width: 55px; text-align: left; font-weight: 600; color: var(--perry-gray); }
         .col-athlete { width: auto; }
         .col-time { width: 105px; text-align: right; }
@@ -316,6 +317,20 @@
 
         function toggleAthleteCardElement(cardElement) {
             cardElement.classList.toggle('expanded');
+            
+            // Lazy load historical detailed meet rows if expanding
+            if (cardElement.classList.contains('expanded')) {
+                let nameEl = cardElement.querySelector('.athlete-name');
+                if (nameEl) {
+                    let runnerName = nameEl.innerText;
+                    let targetGridId = `history-grid-${btoa(runnerName)}`;
+                    
+                    let gridBox = document.getElementById(targetGridId);
+                    if (gridBox && gridBox.innerText.includes("Loading historical meet times...")) {
+                        loadAthleteMeetHistory(runnerName, targetGridId);
+                    }
+                }
+            }
         }
 
         function cleanTimeToSeconds(timeStr) {
@@ -485,6 +500,80 @@
             }, 350);
         }
 
+        // New Asynchronous Function to parse horizontal multi-tabs into vertical elements
+        async function loadAthleteMeetHistory(athleteName, targetGridId) {
+            const gridContainer = document.getElementById(targetGridId);
+            if (!gridContainer) return;
+
+            const masterSpreadsheetBaseUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTb2bSDnf7t82eum6cnZcu-VTriEiqQFo5rkK5UsXujL7Qv3cpNFf2pLFYvDD0aNHRvbn3aWl5cEu8z/pub?output=csv";
+            
+            let currentYear = 2026;
+            let historicalYears = [];
+            for (let y = currentYear; y >= 1982; y--) {
+                historicalYears.push(y);
+            }
+
+            let compiledGridHtml = "";
+            let foundAnyData = false;
+
+            for (let year of historicalYears) {
+                try {
+                    let tabUrl = `${masterSpreadsheetBaseUrl}&sheet=${year}`;
+                    let res = await fetch(tabUrl);
+                    if (!res.ok) continue;
+                    
+                    let text = await res.text();
+                    let rows = parseCSVText(text);
+                    if (rows.length < 3) continue;
+
+                    let meetHeaders = rows[0]; 
+                    let runnerRow = rows.find(r => r[0] && r[0].toLowerCase().startsWith(athleteName.toLowerCase().split('/')[0]));
+                    
+                    if (runnerRow) {
+                        let meetElementsHtml = "";
+                        
+                        for (let colIdx = 1; colIdx < meetHeaders.length; colIdx++) {
+                            let meetName = meetHeaders[colIdx];
+                            let timeValue = runnerRow[colIdx];
+
+                            if (meetName && timeValue && timeValue !== "DNR" && timeValue !== "DNF" && timeValue.trim() !== "") {
+                                if (meetName.includes("Season Positions") || meetName.includes("Best/AVG")) continue;
+                                
+                                foundAnyData = true;
+                                meetElementsHtml += `
+                                    <div style="display: flex; justify-content: space-between; font-size: 11px; padding: 4px 6px; border-bottom: 1px dashed #e2e8f0;">
+                                        <span style="font-weight: 600; color: var(--text); max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${meetName}</span>
+                                        <span style="font-weight: 800; color: #2563eb;">${timeValue}</span>
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        if (meetElementsHtml !== "") {
+                            compiledGridHtml += `
+                                <div style="margin-bottom: 8px; border: 1px solid var(--border); border-radius: 6px; background: white; overflow: hidden;">
+                                    <div style="background: var(--primary-light); color: var(--accent); padding: 3px 8px; font-size: 11px; font-weight: 800; display: flex; justify-content: space-between;">
+                                        <span>${year} CROSS COUNTRY SEASON</span>
+                                    </div>
+                                    <div style="padding: 2px 0;">
+                                        ${meetElementsHtml}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Error processing sheet year ${year}:`, err);
+                }
+            }
+
+            if (foundAnyData) {
+                gridContainer.innerHTML = compiledGridHtml;
+            } else {
+                gridContainer.innerHTML = `<p style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px;">No individual meet items found for this runner since 1982.</p>`;
+            }
+        }
+
         function renderRoster() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const container = document.getElementById('rosterList');
@@ -545,6 +634,15 @@
                     </div>
                     <div class="card-expand-body">
                         <div class="events-grid">${eventsHtml}</div>
+                        
+                        <!-- Embedded Historical Meet-by-Meet Layout Content -->
+                        <div class="meet-history-section" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px;">
+                            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--perry-gray); margin-bottom: 6px; letter-spacing: 0.3px;">Meet-by-Meet Career Grid</h4>
+                            <div class="meet-history-vertical-grid" id="history-grid-${btoa(athlete.name)}" style="max-height: 200px; overflow-y: auto; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border); padding: 4px;">
+                                <p style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px;">Loading historical meet times...</p>
+                            </div>
+                        </div>
+
                         <button class="card-action-btn" onclick="event.stopPropagation(); selectAthleteFromDrawer('${athlete.name.replace(/"/g, '&quot;')}')">Highlight On Leaderboard</button>
                     </div>
                 `;
@@ -819,7 +917,6 @@
                     }
                 }
 
-                // Shifting the score layout blocks rightward to map beautifully beneath headings
                 output += `   ${rnkStr} ${tmNameStr} ${totPtsStr}  ${pointsBreakdownRow}\n`;
                 
                 let totalTimeText = formatSecondsToClockStr(team.totalSeconds);
