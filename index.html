@@ -19,7 +19,7 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); padding-bottom: 60px; }
+        body { background-color: var(--bg); color: var(--text); padding-bottom: 40px; overflow-x: hidden; }
         
         /* Premium Header Styling with Quick Sync Action */
         header { background: var(--primary); color: white; padding: 20px 16px; text-align: center; border-bottom: 4px solid var(--accent); display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; }
@@ -32,62 +32,60 @@
         .header-sync-btn svg { width: 20px; height: 20px; fill: #ffffff; transition: transform 0.5s ease; }
         .header-sync-btn.spinning svg { transform: rotate(360deg); }
 
-        /* Streamlined 50/50 Dual Tab Layout */
-        .tabs { display: flex; background: white; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 90; }
-        .tab-btn { flex: 1; padding: 16px; border: none; background: none; font-size: 15px; font-weight: 700; color: var(--perry-gray); cursor: pointer; border-bottom: 4px solid transparent; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
-        .tab-btn.active { color: var(--primary); border-bottom-color: var(--accent); background: #fafafa; }
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
         
-        .container { max-width: 600px; margin: 0 auto; padding: 16px; position: relative; }
-        
-        /* Floating Trigger Action for Search Mode */
-        .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; transition: transform 0.2s; }
-        .search-trigger-fab:active { transform: scale(0.9); }
-        .search-trigger-fab svg { width: 24px; height: 24px; fill: #ffffff; }
-
-        /* Immersive Focused Center Search Modal Overlay */
-        .search-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 200; display: flex; justify-content: center; align-items: flex-start; padding-top: 15vh; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
-        .search-overlay.active { opacity: 1; pointer-events: auto; }
-        
-        .search-modal-content { background: white; width: 90%; max-width: 500px; border-radius: 20px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); transform: translateY(-20px); transition: transform 0.25s ease; position: relative; border: 2px solid var(--border); }
-        .search-overlay.active .search-modal-content { transform: translateY(0); }
-        
-        .modal-search-box { position: relative; margin-bottom: 12px; }
-        .modal-search-box input { width: 100%; padding: 16px; padding-left: 48px; border: 2px solid var(--primary); border-radius: 12px; font-size: 17px; background: #f8fafc; outline: none; font-weight: 600; }
-        .modal-search-box svg { position: absolute; left: 16px; top: 17px; width: 22px; height: 22px; fill: var(--perry-gray); }
-        
-        .close-search-btn { background: #f1f5f9; color: var(--text); border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; width: 100%; cursor: pointer; text-transform: uppercase; }
-        .close-search-btn:hover { background: #e2e8f0; }
-
-        /* Roster & Card Framework */
-        .athlete-card { background: var(--card-bg); border-radius: 16px; padding: 18px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 12px; }
-        .athlete-name { font-size: 18px; font-weight: 800; color: var(--primary); }
-        .athlete-grad-year { font-size: 12px; padding: 4px 10px; border-radius: 6px; font-weight: 700; background: #f1f5f9; color: var(--primary); border: 1px solid var(--border); }
-        
-        .events-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        .event-row { background: #f8fafc; border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--perry-gray); }
-        .event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .event-title { font-size: 14px; font-weight: 800; color: var(--primary); }
-        .event-pr { font-size: 13px; font-weight: 700; background: var(--accent); color: var(--primary); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; gap: 6px; }
-        
-        .progression-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
-        .prog-step { background: white; padding: 6px 2px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; min-height: 62px; }
-        .prog-label { font-size: 11px; color: var(--perry-gray); text-transform: uppercase; font-weight: 700; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; margin-bottom: 2px; }
-        .prog-val { font-size: 11px; font-weight: 600; color: var(--text); word-break: break-word; line-height: 1.2; }
-        .prog-rank { font-size: 9px; font-weight: 800; color: #b45309; background: #fef3c7; padding: 1px 5px; border-radius: 4px; margin-top: 3px; display: inline-block; align-self: center; border: 1px solid #fde68a; }
-        .pr-rank-badge { font-size: 10px; font-weight: 800; color: #ffffff; background: #1e293b; padding: 1px 4px; border-radius: 3px; margin-left: 4px; border: 1px solid rgba(255,255,255,0.2); }
-        
-        .view-panel { display: none; }
-        .view-panel.active { display: block; }
+        /* Dropdowns Layout */
+        .filter-row { display: flex; gap: 10px; margin-bottom: 16px; }
+        .leaderboard-select { width: 100%; padding: 14px; border-radius: 10px; border: 2px solid var(--border); font-size: 15px; font-weight: 700; background-color: white; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         
         /* Leaderboards Component Layout */
-        .leaderboard-select { width: 100%; padding: 14px; border-radius: 10px; border: 2px solid var(--border); font-size: 15px; font-weight: 700; background-color: white; outline: none; }
-        .rank-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        .rank-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .rank-table th, .rank-table td { padding: 14px 12px; text-align: left; font-size: 14px; }
         .rank-table th { background: var(--primary); color: white; }
         .rank-table tbody tr { cursor: pointer; transition: background 0.15s ease; }
         .rank-table tbody tr:hover { background: #f1f5f9; }
         .rank-table tr:not(:last-child) { border-bottom: 1px solid var(--border); }
+        .rank-table tr.highlighted-row { background: #fffbeb; }
+        .rank-table tr.highlighted-row:hover { background: #fef3c7; }
+
+        /* Floating Trigger Action for Search Mode */
+        .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; transition: transform 0.2s; }
+        .search-trigger-fab:active { transform: scale(0.9); }
+        .search-trigger-fab svg { width: 24px; height: 24px; fill: #ffffff; }
+
+        /* Smooth Slide-Out Athlete Panel (Drawer Framework) */
+        .drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .drawer-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .drawer-content { position: fixed; top: 0; right: 0; width: 88%; max-width: 440px; height: 100vh; background: var(--bg); box-shadow: -10px 0 25px -5px rgba(0,0,0,0.2); transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 201; display: flex; flex-direction: column; }
+        .drawer-overlay.active .drawer-content { transform: translateX(0); }
+        
+        .drawer-header { padding: 16px; background: white; border-bottom: 1px solid var(--border); }
+        .modal-search-box { position: relative; }
+        .modal-search-box input { width: 100%; padding: 14px; padding-left: 44px; border: 2px solid var(--primary); border-radius: 10px; font-size: 16px; background: #f8fafc; outline: none; font-weight: 600; }
+        .modal-search-box svg { position: absolute; left: 14px; top: 15px; width: 20px; height: 20px; fill: var(--perry-gray); }
+        
+        .drawer-scroll-area { flex: 1; overflow-y: auto; padding: 16px; }
+
+        /* Roster Card Framework inside Drawer */
+        .athlete-card { background: var(--card-bg); border-radius: 14px; padding: 14px; margin-bottom: 14px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s; }
+        .athlete-card:hover { transform: translateY(-2px); border-color: #cbd5e1; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 10px; }
+        .athlete-name { font-size: 16px; font-weight: 800; color: var(--primary); }
+        .athlete-grad-year { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; background: #f1f5f9; color: var(--primary); border: 1px solid var(--border); }
+        
+        .events-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .event-row { background: #f8fafc; border-radius: 8px; padding: 8px 10px; border-left: 3px solid var(--perry-gray); }
+        .event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .event-title { font-size: 13px; font-weight: 800; color: var(--primary); }
+        .event-pr { font-size: 12px; font-weight: 700; background: var(--accent); color: var(--primary); padding: 2px 6px; border-radius: 4px; display: flex; align-items: center; gap: 4px; }
+        
+        .progression-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; }
+        .prog-step { background: white; padding: 4px 2px; border-radius: 6px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between; min-height: 52px; }
+        .prog-label { font-size: 10px; color: var(--perry-gray); text-transform: uppercase; font-weight: 700; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; margin-bottom: 2px; }
+        .prog-val { font-size: 10px; font-weight: 600; color: var(--text); word-break: break-word; line-height: 1.2; }
+        .prog-rank { font-size: 8px; font-weight: 800; color: #b45309; background: #fef3c7; padding: 1px 3px; border-radius: 3px; margin-top: 2px; display: inline-block; align-self: center; border: 1px solid #fde68a; }
+        .pr-rank-badge { font-size: 9px; font-weight: 800; color: #ffffff; background: #1e293b; padding: 1px 3px; border-radius: 3px; margin-left: 3px; }
         
         /* Notifications Panel */
         .status-msg { padding: 14px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; font-weight: 600; display: none; line-height: 1.4; position: fixed; top: 12px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; z-index: 300; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
@@ -105,65 +103,53 @@
         </div>
         <img src="Mass. Perry Black Outline.png" alt="Perry Athletics Logo" class="logo-img">
         <h1>Perry Boys Distance Times</h1>
-        <p>XC & Track Career Tracker</p>
+        <p>XC & Track Career Leaderboards</p>
     </header>
 
-    <div class="tabs">
-        <button class="tab-btn active" id="tab-search" onclick="switchTab('search')">Runners</button>
-        <button class="tab-btn" id="tab-records" onclick="switchTab('records')">Team Records</button>
-    </div>
-
-    <!-- Center Focus Search Modal Overlay -->
-    <div id="searchOverlay" class="search-overlay" onclick="closeSearchMode(event)">
-        <div class="search-modal-content">
-            <div class="modal-search-box">
-                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input type="text" id="searchInput" placeholder="Type name or graduation class..." oninput="renderRoster()" autocomplete="off">
+    <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawerMode(event)">
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <div class="modal-search-box">
+                    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <input type="text" id="searchInput" placeholder="Search runner name or graduation year..." oninput="renderRoster()" autocomplete="off">
+                </div>
             </div>
-            <button class="close-search-btn" onclick="toggleSearchOverlay(false)">View Results</button>
+            <div class="drawer-scroll-area" id="rosterList"></div>
         </div>
     </div>
 
-    <!-- Floating Search Action Button -->
-    <div class="search-trigger-fab" id="searchFab" onclick="toggleSearchOverlay(true)" title="Search Athletes">
+    <div class="search-trigger-fab" id="searchFab" onclick="toggleDrawer(true)" title="Search Athletes">
         <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
     </div>
 
     <div class="container">
-        <!-- RUNNERS LIST TAB PANEL -->
-        <div id="panel-search" class="view-panel active">
-            <div id="rosterList"></div>
+        <div class="filter-row">
+            <select id="leaderboardEvent" class="leaderboard-select" style="flex: 1.2;" onchange="renderLeaderboard()">
+                <option value="XC 5K">Cross Country 5K</option>
+                <option value="800m">800m Track</option>
+                <option value="1600m">1600m Track</option>
+                <option value="3200m">3200m Track</option>
+            </select>
+            <select id="leaderboardRankType" class="leaderboard-select" style="flex: 1;" onchange="renderLeaderboard()">
+                <option value="PR">All-Time Best</option>
+                <option value="9th">9th Grade</option>
+                <option value="10th">10th Grade</option>
+                <option value="11th">11th Grade</option>
+                <option value="12th">12th Grade</option>
+            </select>
         </div>
-
-        <!-- RECORDS LEADERBOARD TAB PANEL -->
-        <div id="panel-records" class="view-panel">
-            <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-                <select id="leaderboardEvent" class="leaderboard-select" style="flex: 1;" onchange="renderLeaderboard()">
-                    <option value="XC 5K">Cross Country 5K</option>
-                    <option value="800m">800m Track</option>
-                    <option value="1600m">1600m Track</option>
-                    <option value="3200m">3200m Track</option>
-                </select>
-                <select id="leaderboardRankType" class="leaderboard-select" style="flex: 1;" onchange="renderLeaderboard()">
-                    <option value="PR">Overall Best (PR)</option>
-                    <option value="9th">9th Grade</option>
-                    <option value="10th">10th Grade</option>
-                    <option value="11th">11th Grade</option>
-                    <option value="12th">12th Grade</option>
-                </select>
-            </div>
-            <table class="rank-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40px; font-weight:700;">#</th>
-                        <th style="font-weight:700;">Athlete</th>
-                        <th style="font-weight:700;">Grad Year</th>
-                        <th id="rankHeaderTime" style="text-align: right; font-weight:700;">Career PR</th>
-                    </tr>
-                </thead>
-                <tbody id="leaderboardBody"></tbody>
-            </table>
-        </div>
+        
+        <table class="rank-table">
+            <thead>
+                <tr>
+                    <th style="width: 45px; font-weight:700;">#</th>
+                    <th style="font-weight:700;">Athlete</th>
+                    <th style="font-weight:700;">Grad</th>
+                    <th id="rankHeaderTime" style="text-align: right; font-weight:700;">Time</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+        </table>
     </div>
 
     <script>
@@ -176,28 +162,28 @@
 
         let athletes = {};
         let rankingsCache = {}; 
+        let highlightedAthlete = null;
 
-        // Helper function to extract an athlete's last name for intelligent roster sorting
         function getLastName(fullName) {
             if (!fullName) return '';
             let parts = fullName.trim().split(/\s+/);
             return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : fullName.toLowerCase();
         }
 
-        function toggleSearchOverlay(open) {
-            const overlay = document.getElementById('searchOverlay');
+        function toggleDrawer(open) {
+            const overlay = document.getElementById('drawerOverlay');
             const input = document.getElementById('searchInput');
             if (open) {
                 overlay.classList.add('active');
-                setTimeout(() => input.focus(), 100);
+                setTimeout(() => input.focus(), 150);
             } else {
                 overlay.classList.remove('active');
             }
         }
 
-        function closeSearchMode(e) {
-            if (e.target.id === 'searchOverlay') {
-                toggleSearchOverlay(false);
+        function closeDrawerMode(e) {
+            if (e.target.id === 'drawerOverlay') {
+                toggleDrawer(false);
             }
         }
 
@@ -260,25 +246,20 @@
             }
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-            document.getElementById(`panel-${tabId}`).classList.add('active');
+        function selectAthleteFromDrawer(name) {
+            highlightedAthlete = name;
+            toggleDrawer(false);
+            renderLeaderboard();
             
-            const fab = document.getElementById('searchFab');
-            if (tabId === 'search') {
-                fab.style.display = 'flex';
-            } else {
-                fab.style.display = 'none';
-                renderLeaderboard();
-            }
-        }
-
-        function viewAthleteDetails(name) {
-            document.getElementById('searchInput').value = name;
-            switchTab('search');
-            renderRoster();
+            // Auto-scroll background page straight down to focus on that specific row item 
+            setTimeout(() => {
+                const row = document.getElementById(`row-${btoa(name)}`);
+                if (row) {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    showMessage(`Highlighted ${name}. Note: They aren't ranked in the currently chosen filters.`);
+                }
+            }, 350);
         }
 
         function renderRoster() {
@@ -288,11 +269,10 @@
             const items = Object.values(athletes);
 
             if(items.length === 0) {
-                container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--text-muted); font-weight:600;">Establishing your historical database from Google files. One second...</p>';
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted); font-weight:600;">Building profile database...</p>';
                 return;
             }
 
-            // Global alphabetical layout sorted strictly by LAST name
             items.sort((a, b) => getLastName(a.name).localeCompare(getLastName(b.name)));
 
             let renderedCount = 0;
@@ -303,14 +283,15 @@
                 if (query && !athlete.name.toLowerCase().includes(query) && !gradDisplay.toLowerCase().includes(query)) continue;
                 
                 renderedCount++;
-                if (renderedCount > 25 && !query) {
+                if (renderedCount > 30 && !query) {
                     break;
                 }
 
                 let card = document.createElement('div');
                 card.className = 'athlete-card';
-                let eventsHtml = '';
+                card.setAttribute('onclick', `selectAthleteFromDrawer("${athlete.name.replace(/"/g, '&quot;')}")`);
                 
+                let eventsHtml = '';
                 ['XC 5K', '800m', '1600m', '3200m'].forEach(ev => {
                     if (athlete[ev]) {
                         let evData = athlete[ev];
@@ -323,26 +304,10 @@
                                     <span class="event-pr">PR: ${evData.PR || '--'}${prBadge}</span>
                                 </div>
                                 <div class="progression-row">
-                                    <div class="prog-step">
-                                        <div class="prog-label">9th</div>
-                                        <div class="prog-val">${evData['9th'] || '--'}</div>
-                                        ${getRankBadgeHtml(ev, '9th', athlete.name)}
-                                    </div>
-                                    <div class="prog-step">
-                                        <div class="prog-label">10th</div>
-                                        <div class="prog-val">${evData['10th'] || '--'}</div>
-                                        ${getRankBadgeHtml(ev, '10th', athlete.name)}
-                                    </div>
-                                    <div class="prog-step">
-                                        <div class="prog-label">11th</div>
-                                        <div class="prog-val">${evData['11th'] || '--'}</div>
-                                        ${getRankBadgeHtml(ev, '11th', athlete.name)}
-                                    </div>
-                                    <div class="prog-step">
-                                        <div class="prog-label">12th</div>
-                                        <div class="prog-val">${evData['12th'] || '--'}</div>
-                                        ${getRankBadgeHtml(ev, '12th', athlete.name)}
-                                    </div>
+                                    <div class="prog-step"><div class="prog-label">9th</div><div class="prog-val">${evData['9th'] || '--'}</div>${getRankBadgeHtml(ev, '9th', athlete.name)}</div>
+                                    <div class="prog-step"><div class="prog-label">10th</div><div class="prog-val">${evData['10th'] || '--'}</div>${getRankBadgeHtml(ev, '10th', athlete.name)}</div>
+                                    <div class="prog-step"><div class="prog-label">11th</div><div class="prog-val">${evData['11th'] || '--'}</div>${getRankBadgeHtml(ev, '11th', athlete.name)}</div>
+                                    <div class="prog-step"><div class="prog-label">12th</div><div class="prog-val">${evData['12th'] || '--'}</div>${getRankBadgeHtml(ev, '12th', athlete.name)}</div>
                                 </div>
                             </div>
                         `;
@@ -354,7 +319,7 @@
             }
             
             if(query && renderedCount === 0) {
-                container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">No runners match that search filter.</p>';
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">No runners found.</p>';
             }
         }
 
@@ -371,13 +336,21 @@
                 .sort((a, b) => cleanTimeToSeconds(a[eventType][rankType]) - cleanTimeToSeconds(b[eventType][rankType]));
 
             if(list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No records found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px;">No matching times found on file.</td></tr>';
                 return;
             }
 
             list.forEach((athlete, index) => {
                 let row = document.createElement('tr');
-                row.setAttribute('onclick', `viewAthleteDetails("${athlete.name.replace(/"/g, '&quot;')}")`);
+                let rowId = `row-${btoa(athlete.name)}`;
+                row.id = rowId;
+                
+                if (highlightedAthlete === athlete.name) {
+                    row.className = 'highlighted-row';
+                }
+                
+                row.setAttribute('onclick', `highlightedAthlete="${athlete.name.replace(/"/g, '&quot;')}"; renderLeaderboard(); toggleDrawer(true); document.getElementById('searchInput').value="${athlete.name.replace(/"/g, '&quot;')}"; renderRoster();`);
+                
                 let yrDisp = athlete.gradYear ? `'${String(athlete.gradYear).slice(-2)}` : '--';
                 row.innerHTML = `
                     <td style="font-weight:700; color:var(--perry-gray);">${index + 1}</td>
@@ -494,10 +467,8 @@
                     localStorage.setItem('perry_athlete_db_v19', JSON.stringify(athletes));
                     
                     recalculateAllRankings();
+                    renderLeaderboard();
                     renderRoster();
-                    if(document.getElementById('panel-records').classList.contains('active')) {
-                        renderLeaderboard();
-                    }
                     if (isManualClick) {
                         showMessage("Successfully updated team files!");
                     }
@@ -512,6 +483,8 @@
             }
         }
 
+        // Initialize display layouts cleanly on execution load
+        renderLeaderboard();
         renderRoster();
         
         window.addEventListener('DOMContentLoaded', () => {
