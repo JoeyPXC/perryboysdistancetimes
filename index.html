@@ -128,10 +128,17 @@
         /* IN-PLACE ROSTER ACCORDION DROPDOWN PANEL */
         .team-roster-breakdown-panel { background: #f8fafc; border-top: 1px solid var(--border); padding: 12px; display: none; }
         .team-accordion-group.expanded .team-roster-breakdown-panel { display: block; }
-        .breakdown-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
-        .breakdown-panel-title { font-size: 12px; font-weight: 800; text-transform: uppercase; color: var(--perry-gray); }
-        .breakdown-row-item { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; font-weight: 600; border-bottom: 1px dashed #e2e8f0; }
+        .breakdown-panel-header { display: flex; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--perry-gray); border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 4px; }
+        .breakdown-row-item { display: flex; align-items: center; font-size: 12px; padding: 6px 0; font-weight: 600; border-bottom: 1px dashed #e2e8f0; }
         .breakdown-row-item.displacer { color: var(--text-muted); font-weight: 500; }
+        
+        /* Inner Column widths layout for the roster dropdown */
+        .bd-col-rank { width: 25px; font-weight: 800; text-align: center; color: var(--perry-gray); }
+        .bd-col-name { flex: 1; padding-left: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bd-col-place { width: 55px; text-align: center; font-weight: 700; color: var(--perry-gray); }
+        .bd-col-time { width: 65px; text-align: right; font-weight: 700; }
+        .bd-col-pts { width: 45px; text-align: right; font-weight: 800; color: #b45309; }
+        .breakdown-row-item.displacer .bd-col-pts { color: var(--text-muted); }
 
         .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; }
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
@@ -233,7 +240,6 @@
             </div>
         </div>
         
-        <!-- MODULE: VIRTUAL MEET CONTROL COCKPIT -->
         <div id="virtualMeetDashboard" class="meet-dashboard" style="display: none;">
             <div class="meet-dashboard-header">
                 <h3>Select XC Seasons to Score</h3>
@@ -619,7 +625,7 @@
                                 gradeCode: runningGrade,
                                 timeSecs: bestTimeThisYear,
                                 displayTime: bestTimeStringThisYear,
-                                team: year + " Team"
+                                team: year + " PXC Team"
                             });
                         }
                     }
@@ -638,9 +644,9 @@
 
             let teamStandingsMap = {};
             selectedYears.forEach(year => {
-                teamStandingsMap[year + " Team"] = {
-                    teamKey: year + " Team",
-                    teamName: year + " Team",
+                teamStandingsMap[year + " PXC Team"] = {
+                    teamKey: year + " PXC Team",
+                    teamName: year + " PXC Team",
                     points: 0,
                     scoringCount: 0,
                     totalSeconds: 0,
@@ -702,8 +708,11 @@
                     let isDisplacer = runner.rosterRank > 5;
                     rosterRowsHtml += `
                         <div class="breakdown-row-item ${isDisplacer ? 'displacer' : ''}">
-                            <div><strong>#${runner.rosterRank}</strong> ${runner.name} <span style="font-size:10px;color:var(--text-muted);">[Place: ${runner.globalPlace}]</span></div>
-                            <div style="text-align:right;">${runner.displayTime} <span style="font-size:10px; font-weight:700; margin-left:4px;">${isDisplacer ? '✕' : '✓'}</span></div>
+                            <div class="bd-col-rank">#${runner.rosterRank}</div>
+                            <div class="bd-col-name">${runner.name}</div>
+                            <div class="bd-col-place">Plc ${runner.globalPlace}</div>
+                            <div class="bd-col-time">${runner.displayTime}</div>
+                            <div class="bd-col-pts">${runner.assignedMeetPoints}</div>
                         </div>
                     `;
                 });
@@ -720,7 +729,11 @@
                     </div>
                     <div class="team-roster-breakdown-panel">
                         <div class="breakdown-panel-header">
-                            <span class="breakdown-panel-title">Varsity Lineup Breakdown</span>
+                            <div class="bd-col-rank">Sq</div>
+                            <div class="bd-col-name">Runner Name</div>
+                            <div class="bd-col-place">Finish</div>
+                            <div class="bd-col-time">Time</div>
+                            <div class="bd-col-pts">Pts</div>
                         </div>
                         ${rosterRowsHtml}
                     </div>
@@ -771,7 +784,7 @@
                 return;
             }
 
-            let output = `<!-- saved from url=(0022)http://internet.e-mail -->\n<HTML>\n<BODY>\n<P>\n<PRE>\n`;
+            let output = `\n<HTML>\n<BODY>\n<P>\n<PRE>\n`;
             output += ` Virtual Meet Simulator                                      HY-TEK's Meet Manager\n`;
             output += `                  All-Time Cross Country Championship Rankings                  \n`;
             output += `                               Perry High School                                \n`;
@@ -819,7 +832,6 @@
                     }
                 }
 
-                // Shifting the score layout blocks rightward to map beautifully beneath headings
                 output += `   ${rnkStr} ${tmNameStr} ${totPtsStr}  ${pointsBreakdownRow}\n`;
                 
                 let totalTimeText = formatSecondsToClockStr(team.totalSeconds);
