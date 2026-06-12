@@ -387,14 +387,16 @@
             const input = document.getElementById('searchInput');
             input.value = '';
             overlay.classList.add('active');
+            expandedAthleteName = name;
             renderRoster();
-            // Scroll to the athlete card without focusing the search box
             setTimeout(() => {
-                let safeId = name.toLowerCase().replace(/[^a-z0-9]/g, '');
                 let cards = document.querySelectorAll('.athlete-card');
                 for (let card of cards) {
                     let header = card.querySelector('.card-toggle-header');
                     if (header && header.dataset.runnerName === name) {
+                        if (!card.classList.contains('expanded')) {
+                            card.classList.add('expanded');
+                        }
                         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         break;
                     }
@@ -636,12 +638,32 @@
             let compiledGridHtml = "";
             let foundAnyData = false;
 
+            // Build a lookup of year -> season PR time from the career sheet data
+            let careerSheetPRByYear = {};
+            let careerAthleteData = athletes[athleteName] && athletes[athleteName]['XC 5K'] ? athletes[athleteName]['XC 5K'] : null;
+            if (!careerAthleteData) {
+                // Try case-insensitive match
+                let matchKey = Object.keys(athletes).find(k => k.toLowerCase() === athleteName.toLowerCase());
+                if (matchKey) careerAthleteData = athletes[matchKey]['XC 5K'];
+            }
+            if (careerAthleteData) {
+                ['9th', '10th', '11th', '12th'].forEach(grade => {
+                    let val = careerAthleteData[grade];
+                    if (val && val !== '--') {
+                        let yr = extractYearFromTimeValue(val);
+                        let time = val.split('(')[0].trim();
+                        if (yr && time && time !== '--') careerSheetPRByYear[yr] = time;
+                    }
+                });
+            }
+
             const sortedYears = Object.keys(athleteRecords).sort((a, b) => b - a);
 
             for (let year of sortedYears) {
                 let meetEntries = athleteRecords[year];
                 let meetElementsHtml = "";
-                let seasonPR = null;
+                // Use the season PR from the career sheet instead of computing from raw meet times
+                let seasonPR = careerSheetPRByYear[year] || null;
 
                 for (let entry of meetEntries) {
                     let meetName = entry.meet;
@@ -649,9 +671,6 @@
 
                     if (!meetName || !timeValue) continue;
                     if (timeValue === 'DNR' || timeValue === 'DNF' || timeValue === '--' || timeValue === '0' || timeValue === '0.0') continue;
-
-                    let timeSecs = cleanTimeToSeconds(timeValue);
-                    if (seasonPR === null || timeSecs < cleanTimeToSeconds(seasonPR)) seasonPR = timeValue;
 
                     foundAnyData = true;
                     meetElementsHtml += `
