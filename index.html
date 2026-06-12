@@ -742,9 +742,7 @@
                 });
                 container.appendChild(card);
 
-                if (athlete.name === expandedAthleteName) {
-                    loadAthleteMeetHistory(athlete.name, `history-grid-${safeId}`);
-                }
+                loadAthleteMeetHistory(athlete.name, `history-grid-${safeId}`);
             }
             
             if(query && renderedCount === 0) {
