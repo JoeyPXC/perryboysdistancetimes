@@ -326,31 +326,16 @@
 
                         if (!year || !athleteName || !meetName || year.toLowerCase() === 'year') continue;
 
-                        // Skip bare integers with no colon — position/rank numbers (1, 2, 3...)
-                        if (/^\d+$/.test(rawTime)) continue;
+                        // Times are clean MM:SS strings from the sheet (e.g. 16:13)
+                        // Just skip empty, bare integers, and non-time values
+                        if (!rawTime || rawTime === '' || rawTime === '0' || rawTime === '-') continue;
 
-                        // Google Sheets may export times as:
-                        // 1) Excel decimal fractions (e.g. 0.675694 = 16:13)
-                        // 2) HH:MM:SS timestamp strings (e.g. 16:13:00 or 0:16:13)
-                        // 3) Plain MM:SS strings (e.g. 16:13) — already correct
-                        let numericVal = parseFloat(rawTime);
-                        if (!isNaN(numericVal) && numericVal > 0 && numericVal < 1 && !rawTime.includes(':')) {
-                            let totalMinutes = numericVal * 24 * 60;
-                            let mins = Math.floor(totalMinutes);
-                            let secs = Math.round((totalMinutes - mins) * 60);
-                            if (secs === 60) { mins++; secs = 0; }
-                            rawTime = mins + ':' + (secs < 10 ? '0' : '') + secs;
-                        } else if (rawTime.includes(':')) {
-                            let timeParts = rawTime.split(':');
-                            if (timeParts.length === 3) {
-                                let a = parseInt(timeParts[0], 10);
-                                let b = parseInt(timeParts[1], 10);
-                                if (a === 0) {
-                                    rawTime = b + ':' + timeParts[2].padStart(2, '0');
-                                } else {
-                                    rawTime = a + ':' + (b < 10 ? '0' : '') + b;
-                                }
-                            }
+                        // Handle legacy HH:MM:SS format just in case (e.g. 16:13:00)
+                        let timeParts = rawTime.split(':');
+                        if (timeParts.length === 3) {
+                            let a = parseInt(timeParts[0], 10);
+                            let b = parseInt(timeParts[1], 10);
+                            rawTime = a === 0 ? (b + ':' + timeParts[2].padStart(2, '0')) : (a + ':' + (b < 10 ? '0' : '') + b);
                         }
 
                         let lookupKey = athleteName.toLowerCase().replace(/[^a-z0-9]/g, '');
