@@ -314,7 +314,8 @@
 
                         if (!year || !athleteName || !meetName || year.toLowerCase() === 'year') continue;
 
-                        if (/:00$/.test(rawTime)) {
+                        // Only strip trailing :00 from H:MM:SS format (two colons), not M:SS like 11:00
+                        if (/:00$/.test(rawTime) && (rawTime.match(/:/g) || []).length === 2) {
                             rawTime = rawTime.substring(0, rawTime.length - 3);
                         }
 
@@ -394,14 +395,11 @@
                 for (let card of cards) {
                     let header = card.querySelector('.card-toggle-header');
                     if (header && header.dataset.runnerName === name) {
-                        if (!card.classList.contains('expanded')) {
-                            card.classList.add('expanded');
-                        }
-                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         break;
                     }
                 }
-            }, 100);
+            }, 150);
         }
 
         function closeDrawerMode(e) {
@@ -722,7 +720,7 @@
                 if (query && !athlete.name.toLowerCase().includes(query) && !gradDisplay.toLowerCase().includes(query)) continue;
                 
                 renderedCount++;
-                if (renderedCount > 60 && !query) break;
+                if (renderedCount > 60 && !query && athlete.name !== expandedAthleteName) break;
 
                 let card = document.createElement('div');
                 card.className = 'athlete-card';
