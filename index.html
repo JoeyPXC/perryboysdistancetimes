@@ -289,7 +289,6 @@
 
                     let parsed = {};
 
-                    // Find header indices dynamically to prevent shifts
                     let headers = rows[0].map(h => String(h).toLowerCase().trim());
                     let yearIdx = headers.indexOf('year');
                     let nameIdx = headers.indexOf('runner name');
@@ -395,7 +394,7 @@
                     let targetGridId = `history-grid-${btoa(runnerName)}`;
                     
                     let gridBox = document.getElementById(targetGridId);
-                    if (gridBox && gridBox.innerText.includes("Loading historical meet times...")) {
+                    if (gridBox && gridBox.innerText.includes("Loading historical meet times…")) {
                         loadAthleteMeetHistory(runnerName, targetGridId);
                     }
                 }
@@ -404,11 +403,25 @@
 
         function cleanTimeToSeconds(timeStr) {
             if (!timeStr || timeStr.trim() === "" || timeStr.toUpperCase() === "NT" || timeStr === "--") return Infinity;
+            
             let clean = timeStr.split('(')[0].split('-')[0].trim();
             clean = clean.replace(/[^\d:.]/g, '');
+            
             if (!clean.includes(':')) return parseFloat(clean) || Infinity;
+            
             let parts = clean.split(':');
-            return (parseInt(parts[0]) * 60) + parseFloat(parts[1]);
+            if (parts.length === 3) {
+                // Fixes Google Sheets timestamp exports parsing (HH:MM:SS -> MM:SS)
+                let hours = parseInt(parts[0], 10);
+                let minutes = parseInt(parts[1], 10);
+                let seconds = parseFloat(parts[2]);
+                if (hours > 0 && minutes < 60) {
+                    return (hours * 60) + seconds;
+                }
+                return (minutes * 60) + seconds;
+            }
+            
+            return (parseInt(parts[0], 10) * 60) + parseFloat(parts[1]);
         }
 
         function extractYearFromTimeValue(timeValueStr) {
@@ -574,11 +587,6 @@
             if (!gridContainer) return;
 
             gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">⏳ Loading season history…</p>`;
-
-            if (!XC_ALL_TIME_HISTORY_URL || XC_ALL_TIME_HISTORY_URL.includes("YOUR_ALL_TIME")) {
-                gridContainer.innerHTML = `<p style="font-size:11px;color:#b45309;text-align:center;padding:12px;">⚠️ Set <strong>XC_ALL_TIME_HISTORY_URL</strong> in the code to enable meet history.</p>`;
-                return;
-            }
 
             const historyData = await getXCHistoryData();
 
@@ -945,7 +953,7 @@
                 return;
             }
 
-            let output = `<!-- saved from url=(0022)http://internet.e-mail -->\n<HTML>\n<BODY>\n<P>\n<PRE>\n`;
+            let output = `\n<HTML>\n<BODY>\n<P>\n<PRE>\n`;
             output += ` Virtual Meet Simulator                                      HY-TEK's Meet Manager\n`;
             output += `                  All-Time Cross Country Championship Rankings                  \n`;
             output += `                               Perry High School                                \n`;
