@@ -20,6 +20,7 @@
             --text: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
+            --success: #166534;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -78,7 +79,7 @@
         .rank-table tr.highlighted-row { background: #fffbeb; }
         .rank-table tr.highlighted-row:hover { background: #fef3c7; }
 
-        /* NEW: Custom Multi-Row Career View Styling */
+        /* Custom Multi-Row Career View Styling */
         .career-list-view { display: flex; flex-direction: column; gap: 10px; }
         .career-row-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: background 0.15s; }
         .career-row-card:hover { background: #f8fafc; }
@@ -97,6 +98,26 @@
         .career-block.is-pr-year { border: 1.5px solid #b45309; background: #fffbeb; }
         .career-lbl { font-size: 9px; font-weight: 700; color: var(--perry-gray); text-transform: uppercase; margin-bottom: 2px; }
         .career-val { font-size: 10px; font-weight: 700; color: var(--text); word-break: break-all; line-height: 1.1; }
+
+        /* NEW: Virtual Meet Component Layout Styles */
+        .meet-dashboard { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .meet-dashboard h3 { font-size: 16px; font-weight: 800; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--primary); }
+        .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; max-height: 160px; overflow-y: auto; padding: 8px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 14px; }
+        .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; cursor: pointer; user-select: none; }
+        .checkbox-label input { width: 16px; height: 16px; accent-color: var(--primary); }
+        
+        .action-btn { width: 100%; background: var(--primary); color: white; border: 3px solid var(--accent); padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: background 0.15s; text-align: center; }
+        .action-btn:hover { background: #222; }
+
+        .meet-section-title { font-size: 14px; font-weight: 800; text-transform: uppercase; color: var(--perry-gray); margin: 20px 0 8px 4px; letter-spacing: 0.5px; }
+        .score-podium { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .team-score-card { background: white; border: 2px solid var(--border); border-left: 6px solid var(--perry-gray); border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .team-score-card.place-1 { border-left-color: #d97706; background: #fffbeb; border-color: #fde68a; }
+        .team-score-card.place-2 { border-left-color: #475569; }
+        .team-score-card.place-3 { border-left-color: #b45309; }
+        .team-score-name { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+        .team-score-pts { font-size: 18px; font-weight: 900; color: var(--primary); }
+        .tiebreaker-badge { font-size: 10px; background: #b45309; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
 
         /* Floating Trigger Action for Search Mode */
         .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; transition: transform 0.2s; }
@@ -185,11 +206,11 @@
         <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
     </div>
 
-    <!-- MAIN CORE APPLICATION VIEW (TEAM RECORDS LEADERBOARDS) -->
+    <!-- MAIN CORE APPLICATION VIEW -->
     <div class="container">
         <div class="filter-container">
             <!-- Row 1: Event Type Picker -->
-            <div class="filter-row">
+            <div class="filter-row" id="eventSelectorRow">
                 <select id="leaderboardEvent" class="leaderboard-select" onchange="renderLeaderboard()">
                     <option value="XC 5K">Cross Country 5K</option>
                     <option value="800m">800m Track</option>
@@ -197,11 +218,12 @@
                     <option value="3200m">3200m Track</option>
                 </select>
             </div>
-            <!-- Row 2: Category Rank vs Calendar Year Filter -->
+            <!-- Row 2: Category Rank vs Alternative Dynamic Application Modes -->
             <div class="filter-row">
                 <select id="leaderboardRankType" class="leaderboard-select" onchange="handleRankTypeChange()">
                     <option value="PR">All-Time Best (Career PR)</option>
                     <option value="CAREER_ALL">Show Full Career Progressions 📋</option>
+                    <option value="VIRTUAL_MEET">Virtual Meet Simulator ⏱️</option>
                     <option value="9th">9th Grade Standings</option>
                     <option value="10th">10th Grade Standings</option>
                     <option value="11th">11th Grade Standings</option>
@@ -209,14 +231,26 @@
                     <option value="SEASON_YEAR">Filter By Calendar Year ↓</option>
                 </select>
                 
-                <!-- Dynamic year input picker which pops up conditionally -->
+                <!-- Dynamic calendar season picker which drops down conditionally -->
                 <select id="leaderboardSeasonYear" class="leaderboard-select" style="display: none;" onchange="renderLeaderboard()">
-                    <!-- Populated dynamically by javascript based on database contents -->
                 </select>
             </div>
         </div>
         
-        <!-- Standard Data Table (Used for Single-Time Lists) -->
+        <!-- MODULE: VIRTUAL MEET CONTROL COCKPIT -->
+        <div id="virtualMeetDashboard" class="meet-dashboard" style="display: none;">
+            <h3>Select Cross Country Seasons to Score</h3>
+            <div id="meetSeasonCheckboxes" class="checkbox-grid"></div>
+            <button class="action-btn" onclick="executeVirtualMeetCalculation()">Score Championship Race</button>
+        </div>
+
+        <div id="virtualMeetResultsArea" style="display: none;">
+            <div class="meet-section-title">Team Championship Podium</div>
+            <div id="meetPodiumContainer" class="score-podium"></div>
+            <div class="meet-section-title">Official Race Results Grid</div>
+        </div>
+        
+        <!-- Standard Data Table Component -->
         <table class="rank-table" id="standardRankTable">
             <thead>
                 <tr>
@@ -229,7 +263,7 @@
             <tbody id="leaderboardBody"></tbody>
         </table>
 
-        <!-- Custom Comprehensive Career View Container (Swapped via JS) -->
+        <!-- Custom Comprehensive Career View Container -->
         <div id="careerProgressiveView" class="career-list-view" style="display: none;"></div>
     </div>
 
@@ -287,23 +321,23 @@
             return matches ? matches[1] : null;
         }
 
-        function populateSeasonYearDropdown() {
+        function generateUniqueYearsList() {
             let yearSet = new Set();
             Object.values(athletes).forEach(athlete => {
-                ['XC 5K', '800m', '1600m', '3200m'].forEach(ev => {
-                    if (athlete[ev]) {
-                        ['9th', '10th', '11th', '12th'].forEach(grade => {
-                            let yr = extractYearFromTimeValue(athlete[ev][grade]);
-                            if (yr) yearSet.add(yr);
-                        });
-                    }
-                });
+                if (athlete['XC 5K']) {
+                    ['9th', '10th', '11th', '12th'].forEach(grade => {
+                        let yr = extractYearFromTimeValue(athlete['XC 5K'][grade]);
+                        if (yr) yearSet.add(yr);
+                    });
+                }
             });
+            return Array.from(yearSet).sort((a, b) => b - a);
+        }
 
+        function populateSeasonYearDropdown() {
+            let sortedYears = generateUniqueYearsList();
             const yearSelector = document.getElementById('leaderboardSeasonYear');
             yearSelector.innerHTML = '';
-            
-            let sortedYears = Array.from(yearSet).sort((a, b) => b - a);
             
             if (sortedYears.length === 0) {
                 let currentYear = new Date().getFullYear();
@@ -316,23 +350,45 @@
                 opt.innerText = yr + " Season";
                 yearSelector.appendChild(opt);
             });
+
+            // Simultaneously populate checkboxes for meet simulator
+            populateMeetCheckboxPanel(sortedYears);
+        }
+
+        function populateMeetCheckboxPanel(years) {
+            const container = document.getElementById('meetSeasonCheckboxes');
+            container.innerHTML = '';
+            years.forEach(yr => {
+                let lbl = document.createElement('label');
+                lbl.className = 'checkbox-label';
+                lbl.innerHTML = `<input type="checkbox" class="meet-year-checkbox" value="${yr}"> ${yr} Season`;
+                container.appendChild(lbl);
+            });
         }
 
         function handleRankTypeChange() {
             const rankType = document.getElementById('leaderboardRankType').value;
+            const eventRow = document.getElementById('eventSelectorRow');
             const yearSelector = document.getElementById('leaderboardSeasonYear');
             const standardTable = document.getElementById('standardRankTable');
             const careerView = document.getElementById('careerProgressiveView');
+            const meetDashboard = document.getElementById('virtualMeetDashboard');
+            const meetResultsArea = document.getElementById('virtualMeetResultsArea');
             
-            if (rankType === 'SEASON_YEAR') {
-                yearSelector.style.display = 'block';
-            } else {
-                yearSelector.style.display = 'none';
-            }
+            // Re-route visibility grids based on app structural mode
+            yearSelector.style.display = (rankType === 'SEASON_YEAR') ? 'block' : 'none';
+            eventRow.style.display = (rankType === 'VIRTUAL_MEET') ? 'none' : 'block';
+            meetDashboard.style.display = (rankType === 'VIRTUAL_MEET') ? 'block' : 'none';
+            meetResultsArea.style.display = (rankType === 'VIRTUAL_MEET') ? 'block' : 'none';
 
             if (rankType === 'CAREER_ALL') {
                 standardTable.style.display = 'none';
                 careerView.style.display = 'flex';
+            } else if (rankType === 'VIRTUAL_MEET') {
+                standardTable.style.display = 'table';
+                careerView.style.display = 'none';
+                executeVirtualMeetCalculation(); // Run initial calculation on load
+                return;
             } else {
                 standardTable.style.display = 'table';
                 careerView.style.display = 'none';
@@ -481,16 +537,189 @@
             }
         }
 
+        function executeVirtualMeetCalculation() {
+            // Locate all selected years from checkbox controls
+            const checkboxes = document.querySelectorAll('.meet-year-checkbox');
+            let selectedYears = [];
+            checkboxes.forEach(cb => { if(cb.checked) selectedYears.push(cb.value); });
+
+            const tbody = document.getElementById('leaderboardBody');
+            const podiumContainer = document.getElementById('meetPodiumContainer');
+            
+            tbody.innerHTML = '';
+            podiumContainer.innerHTML = '';
+
+            // Guard rails: Default to top 3 available seasons if none are explicitly selected
+            if (selectedYears.length === 0) {
+                let defaultYears = generateUniqueYearsList().slice(0, 3);
+                checkboxes.forEach(cb => {
+                    if (defaultYears.includes(cb.value)) {
+                        cb.checked = true;
+                        selectedYears.push(cb.value);
+                    }
+                });
+            }
+
+            if (selectedYears.length < 2) {
+                podiumContainer.innerHTML = '<p style="padding:10px; color:var(--text-muted); font-weight:700;">Select at least 2 seasons to run a dual or invitational meet!</p>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px;">Awaiting meet lineups...</td></tr>';
+                return;
+            }
+
+            let globalRaceEntries = [];
+
+            // Phase 1: Roster Capping (Extract individual fastest marks per target calendar year)
+            selectedYears.forEach(year => {
+                let seasonCandidates = [];
+                
+                Object.values(athletes).forEach(athlete => {
+                    if (athlete['XC 5K']) {
+                        let evData = athlete['XC 5K'];
+                        let bestTimeThisYear = Infinity;
+                        let bestTimeStringThisYear = null;
+
+                        ['9th', '10th', '11th', '12th'].forEach(grade => {
+                            if (extractYearFromTimeValue(evData[grade]) === year) {
+                                let secs = cleanTimeToSeconds(evData[grade]);
+                                if (secs < bestTimeThisYear) {
+                                    bestTimeThisYear = secs;
+                                    bestTimeStringThisYear = evData[grade].split('(')[0].trim();
+                                }
+                            }
+                        });
+
+                        if (bestTimeStringThisYear) {
+                            seasonCandidates.push({
+                                name: athlete.name,
+                                gradYear: athlete.gradYear,
+                                timeSecs: bestTimeThisYear,
+                                displayTime: bestTimeStringThisYear,
+                                team: year + " Squad"
+                            });
+                        }
+                    }
+                });
+
+                // Enforce XC Rules: Sort candidates and limit rosters to top 7 varsity runners
+                seasonCandidates.sort((a, b) => a.timeSecs - b.timeSecs);
+                let topSeven = seasonCandidates.slice(0, 7);
+                
+                topSeven.forEach((runner, index) => {
+                    runner.rosterRank = index + 1; // 1-5 are scorers, 6-7 are pushers/displacers
+                    globalRaceEntries.push(runner);
+                });
+            });
+
+            // Phase 2: Run the Race (Global Sorting)
+            globalRaceEntries.sort((a, b) => a.timeSecs - b.timeSecs);
+
+            // Establish score tracking objects
+            let teamStandingsMap = {};
+            selectedYears.forEach(year => {
+                teamStandingsMap[year + " Squad"] = {
+                    teamName: year + " Season",
+                    points: 0,
+                    scoringCount: 0,
+                    sixthPlaceGlobalRank: 99999, // High default for tiebreaker safety
+                    hasSixth: false,
+                    runnersList: []
+                };
+            });
+
+            // Phase 3: Live XC Displacement Points Distribution
+            globalRaceEntries.forEach((runner, index) => {
+                let finishPositionPoints = index + 1;
+                let team = teamStandingsMap[runner.team];
+                
+                let runnerScoreForTeam = "--";
+
+                if (team.scoringCount < 5) {
+                    team.points += finishPositionPoints;
+                    team.scoringCount++;
+                    runnerScoreForTeam = finishPositionPoints;
+                } else if (team.scoringCount === 5 && runner.rosterRank === 6) {
+                    team.sixthPlaceGlobalRank = finishPositionPoints;
+                    team.hasSixth = true;
+                    team.scoringCount++;
+                    runnerScoreForTeam = finishPositionPoints;
+                } else if (runner.rosterRank === 7) {
+                    team.scoringCount++;
+                    runnerScoreForTeam = finishPositionPoints;
+                }
+
+                runner.assignedMeetPoints = runnerScoreForTeam;
+                team.runnersList.push(runner);
+            });
+
+            // Phase 4: Championship Rankings and NFHS Multi-Team Tiebreaker Execution
+            let rankedTeamsList = Object.values(teamStandingsMap).filter(t => t.scoringCount >= 5);
+            
+            // Track if a tiebreaker was triggered for visual badging
+            let tieMap = new Set();
+
+            rankedTeamsList.sort((teamA, teamB) => {
+                if (teamA.points !== teamB.points) {
+                    return teamA.points - teamB.points; // Lowest cumulative score wins
+                }
+                // Tie Scenario: Execute 6th runner placement compare
+                tieMap.add(teamA.points);
+                return teamA.sixthPlaceGlobalRank - teamB.sixthPlaceGlobalRank;
+            });
+
+            // Render Podium View UI
+            rankedTeamsList.forEach((team, idx) => {
+                let card = document.createElement('div');
+                card.className = `team-score-card place-${idx + 1}`;
+                
+                let isBrokenTie = tieMap.has(team.points);
+                let tieBadge = isBrokenTie ? `<span class="tiebreaker-badge" title="Tie broken via faster 6th-man place finish">6th-Man Tiebreak</span>` : '';
+
+                card.innerHTML = `
+                    <div class="team-score-name">
+                        <strong>#${idx + 1}</strong> ${team.teamName} ${tieBadge}
+                    </div>
+                    <div class="team-score-pts">${team.points} pts</div>
+                `;
+                podiumContainer.appendChild(card);
+            });
+
+            // Render Main Race Result Rows to Standard Table Component
+            document.getElementById('rankHeaderTime').innerText = "Points (Time)";
+            globalRaceEntries.forEach((runner, index) => {
+                let row = document.createElement('tr');
+                row.id = `row-${btoa(runner.name)}`;
+                if (highlightedAthlete === runner.name) row.className = 'highlighted-row';
+
+                row.setAttribute('onclick', `highlightedAthlete="${runner.name.replace(/"/g, '&quot;')}"; executeVirtualMeetCalculation(); toggleDrawer(true); document.getElementById('searchInput').value="${runner.name.replace(/"/g, '&quot;')}"; renderRoster();`);
+
+                let yrDisp = runner.gradYear ? `'${String(runner.gradYear).slice(-2)}` : '--';
+                row.innerHTML = `
+                    <td style="font-weight:700; color:var(--perry-gray);">${index + 1}</td>
+                    <td>
+                        <div style="font-weight:700; color:var(--primary);">${runner.name} <span style="font-size:11px; font-weight:600; color:var(--text-muted); font-style:italic;">${runner.team}</span></div>
+                    </td>
+                    <td><span class="athlete-grad-year">${yrDisp}</span></td>
+                    <td style="text-align:right; font-weight:800; color:var(--primary);">
+                        <span style="color:#b45309; margin-right:8px; font-size:13px;">[Pts: ${runner.assignedMeetPoints}]</span>${runner.displayTime}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
         function renderLeaderboard() {
             const eventType = document.getElementById('leaderboardEvent').value;
             const rankType = document.getElementById('leaderboardRankType').value;
             const tbody = document.getElementById('leaderboardBody');
             const careerContainer = document.getElementById('careerProgressiveView');
             
+            if (rankType === 'VIRTUAL_MEET') {
+                return; // Deflect handling to standalone dedicated calculator loop
+            }
+
             tbody.innerHTML = '';
             careerContainer.innerHTML = '';
 
-            // Gather runners who have a valid PR on file for sorting basis
             let sortedPRList = Object.values(athletes)
                 .filter(a => a[eventType] && a[eventType]['PR'] && a[eventType]['PR'] !== 'NT' && a[eventType]['PR'] !== '' && a[eventType]['PR'] !== '--')
                 .sort((a, b) => cleanTimeToSeconds(a[eventType]['PR']) - cleanTimeToSeconds(b[eventType]['PR']));
@@ -512,17 +741,11 @@
                         card.className += ' highlighted-card';
                     }
 
-                    // On-click flips open search system profile
                     card.setAttribute('onclick', `highlightedAthlete="${athlete.name.replace(/"/g, '&quot;')}"; renderLeaderboard(); toggleDrawer(true); document.getElementById('searchInput').value="${athlete.name.replace(/"/g, '&quot;')}"; renderRoster();`);
 
                     let evData = athlete[eventType];
                     let prSecs = cleanTimeToSeconds(evData['PR']);
-
-                    // Interior Helper function to see which block matches lifetime PR
-                    let checkIsPR = (timeVal) => {
-                        return (timeVal && timeVal !== '--' && cleanTimeToSeconds(timeVal) === prSecs);
-                    };
-
+                    let checkIsPR = (timeVal) => (timeVal && timeVal !== '--' && cleanTimeToSeconds(timeVal) === prSecs);
                     let yrDisp = athlete.gradYear ? `'${String(athlete.gradYear).slice(-2)}` : '--';
 
                     card.innerHTML = `
