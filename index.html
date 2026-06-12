@@ -271,7 +271,6 @@
             '3200m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBwM8kOEimN_wZH1wz9AOdDalBGnqIMau3pya67oGsFJZHKzfWUsQ8XWLc1We8xtX-Vylj09kEZkxP/pub?gid=1993866337&single=true&output=csv'
         };
 
-        // Added your live published CSV link for the All_Time_History tab below:
         const XC_ALL_TIME_HISTORY_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-3btJXTHknwy-ko0O1pinK71_v5hS51PDH-U3yoM2QK2hIeVJAfnIbLSDKSsrVzNjzT-LyIYlYghl/pub?gid=1287484724&single=true&output=csv";
 
         let xcHistoryCache = null;
@@ -288,34 +287,49 @@
                     let text = await res.text();
                     let rows = parseCSVText(text);
 
-                    // Rebuilt to match the dynamic layout in 'Boys XC Season Spreadsheets - All_Time_History (1).csv'
-                    // Structure: { "Athlete Name": { "2025": [ { meet: "GlenOak", time: "16:13" }, ... ] } }
                     let parsed = {};
+
+                    // Find header indices dynamically to prevent shifts
+                    let headers = rows[0].map(h => String(h).toLowerCase().trim());
+                    let yearIdx = headers.indexOf('year');
+                    let nameIdx = headers.indexOf('runner name');
+                    if (nameIdx === -1) nameIdx = headers.indexOf('name'); 
+                    let meetIdx = headers.indexOf('meet');
+                    let timeIdx = headers.indexOf('time');
+
+                    if (yearIdx === -1) yearIdx = 0;
+                    if (nameIdx === -1) nameIdx = 1;
+                    if (meetIdx === -1) meetIdx = 3;
+                    if (timeIdx === -1) timeIdx = 4;
 
                     for (let r = 1; r < rows.length; r++) {
                         let row = rows[r];
-                        if (!row || row.length < 5) continue;
+                        if (!row || row.length <= Math.max(yearIdx, nameIdx, meetIdx, timeIdx)) continue;
 
-                        let year = (row[0] || '').trim();
-                        let athleteName = (row[1] || '').trim();
-                        let meetName = (row[3] || '').trim();
-                        let rawTime = (row[4] || '').trim();
+                        let year = (row[yearIdx] || '').trim();
+                        let athleteName = (row[nameIdx] || '').trim();
+                        let meetName = (row[meetIdx] || '').trim();
+                        let rawTime = (row[timeIdx] || '').trim();
 
                         if (!year || !athleteName || !meetName || year.toLowerCase() === 'year') continue;
 
-                        // Normalize spreadsheet timestamps like '16:13:00' down to standard '16:13'
                         if (/:00$/.test(rawTime)) {
                             rawTime = rawTime.substring(0, rawTime.length - 3);
                         }
 
-                        if (!parsed[athleteName]) {
-                            parsed[athleteName] = {};
+                        let lookupKey = athleteName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+                        if (!parsed[lookupKey]) {
+                            parsed[lookupKey] = {
+                                originalName: athleteName,
+                                seasons: {}
+                            };
                         }
-                        if (!parsed[athleteName][year]) {
-                            parsed[athleteName][year] = [];
+                        if (!parsed[lookupKey].seasons[year]) {
+                            parsed[lookupKey].seasons[year] = [];
                         }
 
-                        parsed[athleteName][year].push({
+                        parsed[lookupKey].seasons[year].push({
                             meet: meetName,
                             time: rawTime
                         });
@@ -555,7 +569,6 @@
             }, 350);
         }
 
-        // Adapted match-maker logic to filter, evaluate, and group by vertical rows
         async function loadAthleteMeetHistory(athleteName, targetGridId) {
             const gridContainer = document.getElementById(targetGridId);
             if (!gridContainer) return;
@@ -570,27 +583,25 @@
             const historyData = await getXCHistoryData();
 
             if (!historyData) {
-                gridContainer.innerHTML = `<p style="font-size:11px;color:#991b1b;text-align:center;padding:12px;">Could not load season history. Check the sheet URL or publishing settings.</p>`;
+                gridContainer.innerHTML = `<p style="font-size:11px;color:#991b1b;text-align:center;padding:12px;">Could not load season history. Check your connection or publishing settings.</p>`;
                 return;
             }
 
-            const normSearch = athleteName.toLowerCase().replace(/[^a-z]/g, '');
+            let targetLookupKey = athleteName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            let match = historyData[targetLookupKey];
 
-            // Locate matching runner index within the vertical ledger
-            let matchedKey = Object.keys(historyData).find(k => k.toLowerCase() === athleteName.toLowerCase());
-            if (!matchedKey) {
-                matchedKey = Object.keys(historyData).find(k => {
-                    let norm = k.toLowerCase().replace(/[^a-z]/g, '');
-                    return norm === normSearch || norm.includes(normSearch) || normSearch.includes(norm);
-                });
+            if (!match) {
+                let keys = Object.keys(historyData);
+                let foundKey = keys.find(k => k.includes(targetLookupKey) || targetLookupKey.includes(k));
+                if (foundKey) match = historyData[foundKey];
             }
 
-            if (!matchedKey || !historyData[matchedKey]) {
+            if (!match || !match.seasons) {
                 gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">No meet history found for this runner.</p>`;
                 return;
             }
 
-            let athleteRecords = historyData[matchedKey];
+            let athleteRecords = match.seasons;
             let compiledGridHtml = "";
             let foundAnyData = false;
 
