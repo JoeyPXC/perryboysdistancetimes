@@ -389,6 +389,7 @@
 
         function toggleAthleteCardElement(cardElement, runnerName) {
             cardElement.classList.toggle('expanded');
+            console.log('[DEBUG] toggle called for', runnerName, '-> expanded:', cardElement.classList.contains('expanded'));
             
             if (cardElement.classList.contains('expanded')) {
                 expandedAthleteName = runnerName;
@@ -396,6 +397,7 @@
                 let targetGridId = `history-grid-${safeIdName}`;
                 
                 let gridBox = document.getElementById(targetGridId);
+                console.log('[DEBUG] targetGridId:', targetGridId, 'found:', !!gridBox);
                 if (gridBox) {
                     loadAthleteMeetHistory(runnerName, targetGridId);
                 }
@@ -585,8 +587,9 @@
         }
 
         async function loadAthleteMeetHistory(athleteName, targetGridId) {
+            console.log('[DEBUG] loadAthleteMeetHistory called for', athleteName, targetGridId);
             const gridContainer = document.getElementById(targetGridId);
-            if (!gridContainer) return;
+            if (!gridContainer) { console.log('[DEBUG] gridContainer NOT FOUND'); return; }
 
             gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">⏳ Loading season history…</p>`;
 
@@ -655,8 +658,10 @@
             }
 
             if (foundAnyData) {
+                console.log('[DEBUG] setting compiled history HTML, length:', compiledGridHtml.length);
                 gridContainer.innerHTML = compiledGridHtml;
             } else {
+                console.log('[DEBUG] no data found, foundAnyData=false');
                 gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">No meet history found for this runner.</p>`;
             }
         }
