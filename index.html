@@ -38,7 +38,7 @@
             position: relative; 
         }
         
-        .logo-img { max-width: 140px; height: auto; display: block; margin-bottom: -4px; }
+        .logo-img { max-width: 180px; height: auto; display: block; margin-bottom: -10px; }
         header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff; margin-top: 0; }
         header p { color: #e2e8f0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
         
@@ -132,6 +132,7 @@
         .breakdown-row-item.displacer { color: var(--text-muted); font-weight: 500; }
 
         .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; }
+        .search-trigger-fab svg { width: 26px; height: 26px; fill: white; }
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .drawer-overlay.active { opacity: 1; pointer-events: auto; }
         
@@ -379,6 +380,26 @@
             } else {
                 overlay.classList.remove('active');
             }
+        }
+
+        function openDrawerToAthlete(name) {
+            const overlay = document.getElementById('drawerOverlay');
+            const input = document.getElementById('searchInput');
+            input.value = '';
+            overlay.classList.add('active');
+            renderRoster();
+            // Scroll to the athlete card without focusing the search box
+            setTimeout(() => {
+                let safeId = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                let cards = document.querySelectorAll('.athlete-card');
+                for (let card of cards) {
+                    let header = card.querySelector('.card-toggle-header');
+                    if (header && header.dataset.runnerName === name) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        break;
+                    }
+                }
+            }, 100);
         }
 
         function closeDrawerMode(e) {
@@ -928,7 +949,7 @@
                 row.id = `row-${btoa(runner.name)}`;
                 if (highlightedAthlete === runner.name) row.className = 'highlighted-row';
 
-                row.setAttribute('onclick', `highlightedAthlete="${runner.name.replace(/"/g, '&quot;')}"; executeVirtualMeetCalculation(); toggleDrawer(true); document.getElementById('searchInput').value="${runner.name.replace(/"/g, '&quot;')}"; renderRoster();`);
+                row.setAttribute('onclick', `highlightedAthlete="${runner.name.replace(/"/g, '&quot;')}"; executeVirtualMeetCalculation(); openDrawerToAthlete("${runner.name.replace(/"/g, '&quot;')}");`);
 
                 let yrDisp = runner.gradYear ? `'${String(runner.gradYear).slice(-2)}` : '--';
                 row.innerHTML = `
@@ -1061,7 +1082,7 @@
                     card.className = 'career-row-card';
                     if (highlightedAthlete === athlete.name) card.className += ' highlighted-card';
 
-                    card.setAttribute('onclick', `highlightedAthlete="${athlete.name.replace(/"/g, '&quot;')}"; renderLeaderboard(); toggleDrawer(true); document.getElementById('searchInput').value="${athlete.name.replace(/"/g, '&quot;')}"; renderRoster();`);
+                    card.setAttribute('onclick', `highlightedAthlete="${athlete.name.replace(/"/g, '&quot;')}"; renderLeaderboard(); openDrawerToAthlete("${athlete.name.replace(/"/g, '&quot;')}");`);
 
                     let evData = athlete[eventType];
                     let prSecs = cleanTimeToSeconds(evData['PR']);
@@ -1151,7 +1172,7 @@
                 row.id = `row-${btoa(athlete.name)}`;
                 if (highlightedAthlete === athlete.name) row.className = 'highlighted-row';
                 
-                row.setAttribute('onclick', `highlightedAthlete="${athlete.name.replace(/"/g, '&quot;')}"; renderLeaderboard(); toggleDrawer(true); document.getElementById('searchInput').value="${athlete.name.replace(/"/g, '&quot;')}"; renderRoster();`);
+                row.setAttribute('onclick', `highlightedAthlete="${athlete.name.replace(/"/g, '&quot;')}"; renderLeaderboard(); openDrawerToAthlete("${athlete.name.replace(/"/g, '&quot;')}");`);
                 
                 let yrDisp = athlete.gradYear ? `'${String(athlete.gradYear).slice(-2)}` : '--';
                 row.innerHTML = `
