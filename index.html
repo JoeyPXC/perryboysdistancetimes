@@ -350,6 +350,7 @@
         let athletes = {};
         let rankingsCache = {}; 
         let highlightedAthlete = null;
+        let expandedAthleteName = null;
         let virtualMeetStandingsCache = [];
         let globalRaceEntriesCache = [];
 
@@ -390,6 +391,7 @@
             cardElement.classList.toggle('expanded');
             
             if (cardElement.classList.contains('expanded')) {
+                expandedAthleteName = runnerName;
                 let safeIdName = runnerName.toLowerCase().replace(/[^a-z0-9]/g, '');
                 let targetGridId = `history-grid-${safeIdName}`;
                 
@@ -397,6 +399,8 @@
                 if (gridBox) {
                     loadAthleteMeetHistory(runnerName, targetGridId);
                 }
+            } else {
+                if (expandedAthleteName === runnerName) expandedAthleteName = null;
             }
         }
 
@@ -683,6 +687,7 @@
                 let card = document.createElement('div');
                 card.className = 'athlete-card';
                 if (query && athlete.name.toLowerCase() === query) card.className += ' expanded';
+                if (athlete.name === expandedAthleteName) card.className += ' expanded';
                 
                 let eventsHtml = '';
                 ['XC 5K', '800m', '1600m', '3200m'].forEach(ev => {
@@ -731,6 +736,10 @@
                     </div>
                 `;
                 container.appendChild(card);
+
+                if (athlete.name === expandedAthleteName) {
+                    loadAthleteMeetHistory(athlete.name, `history-grid-${safeId}`);
+                }
             }
             
             if(query && renderedCount === 0) {
