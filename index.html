@@ -118,15 +118,14 @@
             <div class="admin-box">
                 <h3 style="margin-bottom: 12px; color: var(--primary);">Live Google Sheets Sync</h3>
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-                    Your 4 main track/XC events are linked. Tap below to refresh your website with the absolute newest times straight from Google Sheets!
+                    Your 4 main track/XC events are linked. The website syncs automatically in the background when opened, but you can force an instant override sync right here!
                 </p>
-                <button class="btn" onclick="fetchLiveGoogleSheets()">Sync Live Data Now</button>
+                <button class="btn" onclick="fetchLiveGoogleSheets(true)">Force Manual Sync Now</button>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. CONFIGURATION: Live Published CSV Links from Google Sheets
         const GOOGLE_SHEET_CSV_URLS = {
             'XC 5K': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTb2bSDnf7t82eum6cnZcu-VTriEiqQFo5rkK5UsXujL7Qv3cpNFf2pLFYvDD0aNHRvbn3aWl5cEu8z/pub?gid=1993866337&single=true&output=csv', 
             '800m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSH-y7sfLRFZnu0Q4FMVJLHoCvLgchZtoN_ytMKileZFBioqWeczHnzFEiO8ztzh89PUh-GYF8bHjL2/pub?gid=1993866337&single=true&output=csv',
@@ -134,29 +133,15 @@
             '3200m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBwM8kOEimN_wZH1wz9AOdDalBGnqIMau3pya67oGsFJZHKzfWUsQ8XWLc1We8xtX-Vylj09kEZkxP/pub?gid=1993866337&single=true&output=csv'
         };
 
-        // 2. INITIAL DATABASE PLACEHOLDER BEFORE FIRST SYNC
-        const PRE_LOADED_DATA = {
-            "Spencer Smith": {
-                "name": "Spencer Smith", "gradYear": 1998,
-                "800m": { "PR": "1:58.4", "9th": "--", "10th": "2:04.2 (1996)", "11th": "2:00.1 (1997)", "12th": "1:58.4 (1998)" }
-            },
-            "Brandon Smith": {
-                "name": "Brandon Smith", "gradYear": 1998,
-                "800m": { "PR": "1:59.1", "9th": "--", "10th": "2:05.1 (1996)", "11th": "2:01.3 (1997)", "12th": "1:59.1 (1998)" },
-                "3200m": { "PR": "9:48.2", "9th": "--", "10th": "9:48.2 (1997)", "11th": "--", "12th": "--" }
-            }
-        };
-
         let athletes = {};
 
+        // Load cached data instantly if it exists
         try {
-            if (localStorage.getItem('perry_athlete_data_v13')) {
-                athletes = JSON.parse(localStorage.getItem('perry_athlete_data_v13'));
-            } else {
-                athletes = PRE_LOADED_DATA;
+            if (localStorage.getItem('perry_athlete_db_v15')) {
+                athletes = JSON.parse(localStorage.getItem('perry_athlete_db_v15'));
             }
         } catch(e) {
-            athletes = PRE_LOADED_DATA;
+            athletes = {};
         }
 
         function applyDataOverrides(dataset) {
@@ -173,6 +158,9 @@
             el.innerHTML = text;
             el.className = 'status-msg ' + (isError ? 'status-error' : 'status-success');
             el.style.display = 'block';
+            if(!isError) {
+                setTimeout(() => { el.style.display = 'none'; }, 4000);
+            }
         }
 
         function switchTab(tabId) {
@@ -204,8 +192,8 @@
             container.innerHTML = '';
             const items = Object.values(athletes);
 
-            if(items.length === 0 || (items.length === 2 && items[0].name === "Spencer Smith" && !localStorage.getItem('perry_athlete_data_v13'))) {
-                container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted); font-weight:600;">Website initialized! Head over to the "Sync Options" tab and click Sync to fetch your roster live from Google Sheets.</p>';
+            if(items.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted); font-weight:600;">Downloading and establishing the team roster from Google Sheets background files. One second...</p>';
                 return;
             }
 
@@ -264,14 +252,13 @@
                 let row = document.createElement('tr');
                 row.setAttribute('onclick', `viewAthleteDetails("${athlete.name.replace(/"/g, '&quot;')}")`);
                 let yrDisp = athlete.gradYear ? `'${String(athlete.gradYear).slice(-2)}` : '--';
-                tbody.innerHTML += `
-                    <tr>
-                        <td style="font-weight:700; color:var(--perry-gray);">${index + 1}</td>
-                        <td style="font-weight:700; color:var(--primary);">${athlete.name}</td>
-                        <td><span class="athlete-grad-year">${yrDisp}</span></td>
-                        <td style="text-align:right; font-weight:700; color:var(--primary);">${athlete[eventType][rankType]}</td>
-                    </tr>
+                row.innerHTML = `
+                    <td style="font-weight:700; color:var(--perry-gray);">${index + 1}</td>
+                    <td style="font-weight:700; color:var(--primary);">${athlete.name}</td>
+                    <td><span class="athlete-grad-year">${yrDisp}</span></td>
+                    <td style="text-align:right; font-weight:700; color:var(--primary);">${athlete[eventType][rankType]}</td>
                 `;
+                tbody.appendChild(row);
             });
         }
 
@@ -294,15 +281,19 @@
             return rows;
         }
 
-        async function fetchLiveGoogleSheets() {
+        async function fetchLiveGoogleSheets(isManualClick = false) {
             let updatedAthletes = {}; 
             let count = 0;
+
+            if (isManualClick) {
+                showMessage("Connecting to Google Sheets files...");
+            }
 
             try {
                 for (const [eventName, url] of Object.entries(GOOGLE_SHEET_CSV_URLS)) {
                     if (!url) continue;
                     
-                    let res = await fetch(url);
+                    let res = await fetch(url + '&cachebust=' + new Date().getTime());
                     let text = await res.text();
                     let rows = parseCSVText(text);
                     if (rows.length < 2) continue;
@@ -359,19 +350,30 @@
                 if (count > 0) {
                     applyDataOverrides(updatedAthletes);
                     athletes = updatedAthletes;
-                    localStorage.setItem('perry_athlete_data_v13', JSON.stringify(athletes));
-                    showMessage(`Successfully synced ${count} events live from Google Sheets!`);
+                    localStorage.setItem('perry_athlete_db_v15', JSON.stringify(athletes));
                     renderRoster();
-                    setTimeout(() => switchTab('search'), 1200);
-                } else {
-                    showMessage("Could not parse data columns. Double-check your links are active.", true);
+                    if(document.getElementById('panel-records').classList.contains('active')) {
+                        renderLeaderboard();
+                    }
+                    if (isManualClick) {
+                        showMessage(`Successfully synced all stats live from Google Sheets!`);
+                        setTimeout(() => switchTab('search'), 1000);
+                    }
                 }
             } catch(e) {
-                showMessage("Failed to connect to Google Sheets live streaming endpoints.", true);
+                if (isManualClick) {
+                    showMessage("Failed to connect to Google Sheets live streaming endpoints.", true);
+                }
             }
         }
 
+        // 1. Instantly render saved layout
         renderRoster();
+        
+        // 2. Silently update database from Google in background 
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchLiveGoogleSheets(false);
+        });
     </script>
 </body>
 </html>
