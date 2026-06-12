@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -392,7 +393,8 @@
                 let targetGridId = `history-grid-${safeIdName}`;
                 
                 let gridBox = document.getElementById(targetGridId);
-                if (gridBox && gridBox.innerText.includes("Loading historical meet times…")) {
+                if (gridBox && !gridBox.dataset.loaded) {
+                    gridBox.dataset.loaded = "true";
                     loadAthleteMeetHistory(runnerName, targetGridId);
                 }
             }
