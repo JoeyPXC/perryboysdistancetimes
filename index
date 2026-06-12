@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perry Boys Distance Times</title>
+    <meta name="theme-color" content="#000000">
+    <style>
+        :root {
+            --primary: #000000;
+            --primary-light: #1a1a1a;
+            --accent: #ffdd00;
+            --perry-gray: #53565A;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); padding-bottom: 40px; }
+        header { background: var(--primary); color: white; padding: 20px 16px; text-align: center; border-bottom: 4px solid var(--accent); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .logo-img { max-width: 140px; height: auto; display: block; }
+        header h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff; }
+        header p { color: #e2e8f0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .tabs { display: flex; background: white; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .tab-btn { flex: 1; padding: 14px; border: none; background: none; font-size: 14px; font-weight: 700; color: var(--perry-gray); cursor: pointer; border-bottom: 4px solid transparent; transition: all 0.2s; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--accent); background: #fafafa; }
+        .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+        .search-box { position: relative; margin-bottom: 16px; }
+        .search-box input { width: 100%; padding: 14px 16px; padding-left: 44px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; background: white; outline: none; }
+        .search-box svg { position: absolute; left: 14px; top: 15px; width: 20px; height: 20px; fill: var(--perry-gray); }
+        .athlete-card { background: var(--card-bg); border-radius: 16px; padding: 18px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 12px; }
+        .athlete-name { font-size: 18px; font-weight: 800; color: var(--primary); }
+        .athlete-grad-year { font-size: 12px; padding: 4px 10px; border-radius: 6px; font-weight: 700; background: #f1f5f9; color: var(--primary); border: 1px solid var(--border); }
+        .events-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .event-row { background: #f8fafc; border-radius: 10px; padding: 10px 12px; border-left: 4px solid var(--perry-gray); }
+        .event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .event-title { font-size: 14px; font-weight: 800; color: var(--primary); }
+        .event-pr { font-size: 13px; font-weight: 700; background: var(--accent); color: var(--primary); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
+        .progression-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+        .prog-step { background: white; padding: 8px 4px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .prog-label { font-size: 11px; color: var(--perry-gray); text-transform: uppercase; font-weight: 700; border-bottom: 1px dashed #e2e8f0; padding-bottom: 2px; margin-bottom: 4px; }
+        .prog-val { font-size: 11px; font-weight: 600; color: var(--text); word-break: break-word; line-height: 1.2; }
+        .view-panel { display: none; }
+        .view-panel.active { display: block; }
+        .leaderboard-select { width: 100%; padding: 12px; border-radius: 10px; border: 2px solid var(--border); font-size: 15px; font-weight: 700; background-color: white; outline: none; }
+        .rank-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        .rank-table th, .rank-table td { padding: 12px; text-align: left; font-size: 14px; }
+        .rank-table th { background: var(--primary); color: white; }
+        .rank-table tbody tr { cursor: pointer; transition: background 0.15s ease; }
+        .rank-table tbody tr:hover { background: #f1f5f9; }
+        .rank-table tr:not(:last-child) { border-bottom: 1px solid var(--border); }
+        .admin-box { background: white; padding: 20px; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .status-msg { padding: 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; font-weight: 600; display: none; line-height: 1.4; }
+        .status-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .status-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .btn { background: var(--accent); color: var(--primary); padding: 14px 20px; border: none; border-radius: 8px; font-size: 15px; font-weight: 800; cursor: pointer; width: 100%; text-transform: uppercase; letter-spacing: 0.5px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <img src="Mass. Perry Black Outline.png" alt="Perry Athletics Logo" class="logo-img">
+        <h1>Perry Boys Distance Times</h1>
+        <p>XC & Track Career Tracker</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="tab-search" onclick="switchTab('search')">Search Runners</button>
+        <button class="tab-btn" id="tab-records" onclick="switchTab('records')">Team Records</button>
+        <button class="tab-btn" id="tab-admin" onclick="switchTab('admin')">Sync Options</button>
+    </div>
+
+    <div class="container">
+        <div id="statusNotification" class="status-msg"></div>
+
+        <!-- SEARCH TAB PANEL -->
+        <div id="panel-search" class="view-panel active">
+            <div class="search-box">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="searchInput" placeholder="Search runner name or graduation year..." oninput="renderRoster()">
+            </div>
+            <div id="rosterList"></div>
+        </div>
+
+        <!-- RECORDS TAB PANEL -->
+        <div id="panel-records" class="view-panel">
+            <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                <select id="leaderboardEvent" class="leaderboard-select" style="flex: 1;" onchange="renderLeaderboard()">
+                    <option value="XC 5K">Cross Country 5K</option>
+                    <option value="800m">800m Track</option>
+                    <option value="1600m">1600m Track</option>
+                    <option value="3200m">3200m Track</option>
+                </select>
+                <select id="leaderboardRankType" class="leaderboard-select" style="flex: 1;" onchange="renderLeaderboard()">
+                    <option value="PR">Overall Best (PR)</option>
+                    <option value="9th">9th Grade</option>
+                    <option value="10th">10th Grade</option>
+                    <option value="11th">11th Grade</option>
+                    <option value="12th">12th Grade</option>
+                </select>
+            </div>
+            <table class="rank-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; font-weight:700;">#</th>
+                        <th style="font-weight:700;">Athlete</th>
+                        <th style="font-weight:700;">Grad Year</th>
+                        <th id="rankHeaderTime" style="text-align: right; font-weight:700;">Career PR</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+        </div>
+
+        <!-- SYNC TAB PANEL -->
+        <div id="panel-admin" class="view-panel">
+            <div class="admin-box">
+                <h3 style="margin-bottom: 12px; color: var(--primary);">Live Google Sheets Sync</h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                    Your 4 main track/XC events are linked. Tap below to refresh your website with the absolute newest times straight from Google Sheets!
+                </p>
+                <button class="btn" onclick="fetchLiveGoogleSheets()">Sync Live Data Now</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. CONFIGURATION: Live Published CSV Links from Google Sheets
+        const GOOGLE_SHEET_CSV_URLS = {
+            'XC 5K': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTb2bSDnf7t82eum6cnZcu-VTriEiqQFo5rkK5UsXujL7Qv3cpNFf2pLFYvDD0aNHRvbn3aWl5cEu8z/pub?gid=1993866337&single=true&output=csv', 
+            '800m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSH-y7sfLRFZnu0Q4FMVJLHoCvLgchZtoN_ytMKileZFBioqWeczHnzFEiO8ztzh89PUh-GYF8bHjL2/pub?gid=1993866337&single=true&output=csv',
+            '1600m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk7Da1mjKZqHsrDlQZq_z9iQPmG4cf1orBODj37mo5qle4ImTHyeO39dBu5mplV3NrOaRzuLBeph8k/pub?gid=1993866337&single=true&output=csv',
+            '3200m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBwM8kOEimN_wZH1wz9AOdDalBGnqIMau3pya67oGsFJZHKzfWUsQ8XWLc1We8xtX-Vylj09kEZkxP/pub?gid=1993866337&single=true&output=csv'
+        };
+
+        // 2. INITIAL HARD CODED DATABASE STATE
+        const PRE_LOADED_DATA = {
+            "Spencer Smith": {
+                "name": "Spencer Smith", "gradYear": 1998,
+                "800m": { "PR": "1:58.4", "9th": "--", "10th": "2:04.2 (1996)", "11th": "2:00.1 (1997)", "12th": "1:58.4 (1998)" }
+            },
+            "Brandon Smith": {
+                "name": "Brandon Smith", "gradYear": 1998,
+                "800m": { "PR": "1:59.1", "9th": "--", "10th": "2:05.1 (1996)", "11th": "2:01.3 (1997)", "12th": "1:59.1 (1998)" },
+                "3200m": { "PR": "9:48.2", "9th": "--", "10th": "9:48.2 (1997)", "11th": "--", "12th": "--" }
+            }
+        };
+
+        let athletes = {};
+
+        try {
+            if (localStorage.getItem('perry_athlete_data_v12')) {
+                athletes = JSON.parse(localStorage.getItem('perry_athlete_data_v12'));
+            } else {
+                athletes = PRE_LOADED_DATA;
+            }
+        } catch(e) {
+            athletes = PRE_LOADED_DATA;
+        }
+
+        // Keep Brandon Smith on 1998 regardless of source mistakes
+        function applyDataOverrides(dataset) {
+            Object.keys(dataset).forEach(name => {
+                if (name.toLowerCase().trim() === "brandon smith") {
+                    dataset[name].gradYear = 1998;
+                }
+            });
+        }
+        applyDataOverrides(athletes);
+
+        function showMessage(text, isError = false) {
+            const el = document.getElementById('statusNotification');
+            el.innerHTML = text;
+            el.className = 'status-msg ' + (isError ? 'status-error' : 'status-success');
+            el.style.display = 'block';
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById(`panel-${tabId}`).classList.add('active');
+            if (tabId === 'records') renderLeaderboard();
+        }
+
+        function cleanTimeToSeconds(timeStr) {
+            if (!timeStr || timeStr.trim() === "" || timeStr.toUpperCase() === "NT" || timeStr === "--") return Infinity;
+            let clean = timeStr.split('(')[0].split('-')[0].trim();
+            clean = clean.replace(/[^\d:.]/g, '');
+            if (!clean.includes(':')) return parseFloat(clean) || Infinity;
+            let parts = clean.split(':');
+            return (parseInt(parts[0]) * 60) + parseFloat(parts[1]);
+        }
+
+        function viewAthleteDetails(name) {
+            document.getElementById('searchInput').value = name;
+            switchTab('search');
+            renderRoster();
+        }
+
+        function renderRoster() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const container = document.getElementById('rosterList');
+            container.innerHTML = '';
+            const items = Object.values(athletes);
+
+            if(items.length === 0 || (items.length === 2 && items[0].name === "Spencer Smith" && !localStorage.getItem('perry_athlete_data_v12'))) {
+                container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted); font-weight:600;">Website initialized! Head over to the "Sync Options" tab and click Sync to fetch your roster live from Google Sheets.</p>';
+                return;
+            }
+
+            items.forEach(athlete => {
+                let gradDisplay = athlete.gradYear ? `Class of ${athlete.gradYear}` : 'Grad Class: --';
+                if (query && !athlete.name.toLowerCase().includes(query) && !gradDisplay.toLowerCase().includes(query)) return;
+
+                let card = document.createElement('div');
+                card.className = 'athlete-card';
+                let eventsHtml = '';
+                ['XC 5K', '800m', '1600m', '3200m'].forEach(ev => {
+                    if (athlete[ev]) {
+                        let evData = athlete[ev];
+                        eventsHtml += `
+                            <div class="event-row">
+                                <div class="event-header">
+                                    <span class="event-title">${ev}</span>
+                                    <span class="event-pr">PR: ${evData.PR || '--'}</span>
+                                </div>
+                                <div class="progression-row">
+                                    <div class="prog-step"><div class="prog-label">9th</div><div class="prog-val">${evData['9th'] || '--'}</div></div>
+                                    <div class="prog-step"><div class="prog-label">10th</div><div class="prog-val">${evData['10th'] || '--'}</div></div>
+                                    <div class="prog-step"><div class="prog-label">11th</div><div class="prog-val">${evData['11th'] || '--'}</div></div>
+                                    <div class="prog-step"><div class="prog-label">12th</div><div class="prog-val">${evData['12th'] || '--'}</div></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                card.innerHTML = `<div class="card-header"><span class="athlete-name">${athlete.name}</span><span class="athlete-grad-year">${gradDisplay}</span></div><div class="events-grid">${eventsHtml}</div>`;
+                container.appendChild(card);
+            });
+        }
+
+        function renderLeaderboard() {
+            const eventType = document.getElementById('leaderboardEvent').value;
+            const rankType = document.getElementById('leaderboardRankType').value;
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
+
+            document.getElementById('rankHeaderTime').innerText = rankType === 'PR' ? 'Career PR' : rankType + ' Time';
+
+            let list = Object.values(athletes)
+                .filter(a => a[eventType] && a[eventType][rankType] && a[eventType][rankType] !== 'NT' && a[eventType][rankType] !== '' && a[eventType][rankType] !== '--')
+                .sort((a, b) => cleanTimeToSeconds(a[eventType][rankType]) - cleanTimeToSeconds(b[eventType][rankType]));
+
+            if(list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">No records found.</td></tr>';
+                return;
+            }
+
+            list.forEach((athlete, index) => {
+                let row = document.createElement('tr');
+                row.setAttribute('onclick', `viewAthleteDetails("${athlete.name.replace(/"/g, '&quot;')}")`);
+                row.innerHTML = `
+                    <td style="font-weight:700; color:var(--perry-gray);">${index + 1}</td>
+                    <td style="font-weight:700; color:var(--primary);">${athlete.name}</td>
+                    <td><span class="athlete-grad-year">'${String(athlete.gradYear).slice(-2)}</span></td>
+                    <td style="text-align:right; font-weight:700; color:var(--primary);">${athlete[eventType][rankType]}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function parseCSVText(text) {
+            let rows = [], insideQuoteRow = [], inQuotes = false, currentField = '';
+            for (let i = 0; i < text.length; i++) {
+                let char = text[i], nextChar = text[i+1];
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') { currentField += '"'; i++; } else { inQuotes = !inQuotes; }
+                } else if (char === ',' && !inQuotes) {
+                    insideQuoteRow.push(currentField.trim()); currentField = '';
+                } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                    if (char === '\r' && nextChar === '\n') { i++; }
+                    insideQuoteRow.push(currentField.trim());
+                    if (insideQuoteRow.join('').trim() !== '') rows.push(insideQuoteRow);
+                    insideQuoteRow = []; currentField = '';
+                } else { currentField += char; }
+            }
+            if (currentField.trim() !== '' || insideQuoteRow.length > 0) { insideQuoteRow.push(currentField.trim()); rows.push(insideQuoteRow); }
+            return rows;
+        }
+
+        async function fetchLiveGoogleSheets() {
+            let updatedAthletes = {}; 
+            let count = 0;
+
+            try {
+                for (const [eventName, url] of Object.entries(GOOGLE_SHEET_CSV_URLS)) {
+                    if (!url) continue;
+                    
+                    let res = await fetch(url);
+                    let text = await res.text();
+                    let rows = parseCSVText(text);
+                    if (rows.length < 2) continue;
+
+                    let headers = rows[0].map(h => h.toLowerCase().trim());
+                    
+                    let nameIdx = headers.findIndex(h => h === 'name' || h.includes('athlete'));
+                    let prIdx = headers.findIndex(h => h.includes('overall') || h === 'best time' || h === 'time');
+                    
+                    let f9TimeIdx = headers.findIndex(h => h === 'best 9th' || h.includes('9th time'));
+                    let f9YearIdx = headers.findIndex(h => h === '9th year');
+                    let f10TimeIdx = headers.findIndex(h => h === 'best 10th' || h.includes('10th time'));
+                    let f10YearIdx = headers.findIndex(h => h === '10th year');
+                    let f11TimeIdx = headers.findIndex(h => h === 'best 11th' || h.includes('11th time'));
+                    let f11YearIdx = headers.findIndex(h => h === '11th year');
+                    let f12TimeIdx = headers.findIndex(h => h === 'best 12th' || h.includes('12th time'));
+                    let f12YearIdx = headers.findIndex(h => h === '12th year');
+
+                    if (nameIdx === -1) continue;
+
+                    for (let i = 1; i < rows.length; i++) {
+                        let row = rows[i];
+                        if (!row || row.length <= nameIdx) continue;
+                        let name = row[nameIdx].trim();
+                        if (!name || name.toLowerCase() === 'name') continue;
+
+                        if (!updatedAthletes[name]) {
+                            updatedAthletes[name] = { name: name, gradYear: null };
+                        }
+
+                        let m9Time = (f9TimeIdx !== -1 && f9TimeIdx < row.length) ? row[f9TimeIdx].trim() : '';
+                        let m9Year = (f9YearIdx !== -1 && f9YearIdx < row.length) ? row[f9YearIdx].trim() : '';
+                        let m9 = (m9Time && m9Time !== '--' && m9Time !== '0.0' && m9Time !== '0') ? (m9Time + (m9Year ? ` (${m9Year})` : '')) : '--';
+
+                        let m10Time = (f10TimeIdx !== -1 && f10TimeIdx < row.length) ? row[f10TimeIdx].trim() : '';
+                        let m10Year = (f10YearIdx !== -1 && f10YearIdx < row.length) ? row[f10YearIdx].trim() : '';
+                        let m10 = (m10Time && m10Time !== '--' && m10Time !== '0.0' && m10Time !== '0') ? (m10Time + (m10Year ? ` (${m10Year})` : '')) : '--';
+
+                        let m11Time = (f11TimeIdx !== -1 && f11TimeIdx < row.length) ? row[f11TimeIdx].trim() : '';
+                        let m11Year = (f11YearIdx !== -1 && f11YearIdx < row.length) ? row[f11YearIdx].trim() : '';
+                        let m11 = (m11Time && m11Time !== '--' && m11Time !== '0.0' && m11Time !== '0') ? (m11Time + (m11Year ? ` (${m11Year})` : '')) : '--';
+
+                        let m12Time = (f12TimeIdx !== -1 && f12TimeIdx < row.length) ? row[f12TimeIdx].trim() : '';
+                        let m12Year = (f12YearIdx !== -1 && f12YearIdx < row.length) ? row[f12YearIdx].trim() : '';
+                        let m12 = (m12Time && m12Time !== '--' && m12Time !== '0.0' && m12Time !== '0') ? (m12Time + (m12Year ? ` (${m12Year})` : '')) : '--';
+
+                        let basePr = (prIdx !== -1 && prIdx < row.length) ? row[prIdx].trim() : '--';
+
+                        updatedAthletes[name][eventName] = { 
+                            'PR': (basePr && basePr !== '0.0' && basePr !== '0') ? basePr : '--', 
+                            '9th': m9, '10th': m10, '11th': m11, '12th': m12 
+                        };
+
+                        if (!updatedAthletes[name].gradYear) {
+                            if (m12Year) updatedAthletes[name].gradYear = parseInt(m12Year);
+                            else if (m11Year) updatedAthletes[name].gradYear = parseInt(m11Year) + 1;
+                            else if (m10Year) updatedAthletes[name].gradYear = parseInt(m10Year) + 2;
+                            else if (m9Year) updatedAthletes[name].gradYear = parseInt(m9Year) + 3;
+                        }
+                    }
+                    count++;
+                }
+
+                if (count > 0) {
+                    applyDataOverrides(updatedAthletes);
+                    athletes = updatedAthletes;
+                    localStorage.setItem('perry_athlete_data_v12', JSON.stringify(athletes));
+                    showMessage(`Successfully synced ${count} events live from Google Sheets!`);
+                    renderRoster();
+                    setTimeout(() => switchTab('search'), 1200);
+                } else {
+                    showMessage("Could not parse data columns. Double-check your links are active.", true);
+                }
+            } catch(e) {
+                showMessage("Failed to connect to Google Sheets live streaming endpoints.", true);
+            }
+        }
+
+        renderRoster();
+    </script>
+</body>
+</html>
