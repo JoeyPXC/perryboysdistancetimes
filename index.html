@@ -79,6 +79,7 @@
     <div class="container">
         <div id="statusNotification" class="status-msg"></div>
 
+        <!-- SEARCH TAB PANEL -->
         <div id="panel-search" class="view-panel active">
             <div class="search-box">
                 <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
@@ -87,6 +88,7 @@
             <div id="rosterList"></div>
         </div>
 
+        <!-- RECORDS TAB PANEL -->
         <div id="panel-records" class="view-panel">
             <div style="display: flex; gap: 10px; margin-bottom: 16px;">
                 <select id="leaderboardEvent" class="leaderboard-select" style="flex: 1;" onchange="renderLeaderboard()">
@@ -116,6 +118,7 @@
             </table>
         </div>
 
+        <!-- SYNC TAB PANEL -->
         <div id="panel-admin" class="view-panel">
             <div class="admin-box">
                 <h3 style="margin-bottom: 12px; color: var(--primary);">Live Google Sheets Sync</h3>
@@ -147,7 +150,6 @@
             return (parseInt(parts[0]) * 60) + parseFloat(parts[1]);
         }
 
-        // ONE-TIME CALCULATION: Ranks absolutely everyone in background instantly
         function recalculateAllRankings() {
             rankingsCache = {};
             const events = ['XC 5K', '800m', '1600m', '3200m'];
@@ -179,24 +181,14 @@
             return '';
         }
 
-        // Cache engine loading fallback
         try {
-            if (localStorage.getItem('perry_athlete_db_v18')) {
-                athletes = JSON.parse(localStorage.getItem('perry_athlete_db_v18'));
+            if (localStorage.getItem('perry_athlete_db_v19')) {
+                athletes = JSON.parse(localStorage.getItem('perry_athlete_db_v19'));
                 recalculateAllRankings();
             }
         } catch(e) {
             athletes = {};
         }
-
-        function applyDataOverrides(dataset) {
-            Object.keys(dataset).forEach(name => {
-                if (name.toLowerCase().trim() === "brandon smith") {
-                    dataset[name].gradYear = 1998;
-                }
-            });
-        }
-        applyDataOverrides(athletes);
 
         function showMessage(text, isError = false) {
             const el = document.getElementById('statusNotification');
@@ -222,7 +214,6 @@
             renderRoster();
         }
 
-        // INSTANT SPEED SEARCH: No math occurs here anymore
         function renderRoster() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const container = document.getElementById('rosterList');
@@ -236,7 +227,6 @@
 
             items.sort((a,b) => a.name.localeCompare(b.name));
 
-            // Only display items that match search to save phone layout performance
             let renderedCount = 0;
             for(let i=0; i<items.length; i++) {
                 let athlete = items[i];
@@ -246,7 +236,6 @@
                 
                 renderedCount++;
                 if (renderedCount > 25 && !query) {
-                    // Limits heavy rendering on startup, opens completely up when typing
                     break;
                 }
 
@@ -408,19 +397,19 @@
                         };
 
                         if (!updatedAthletes[name].gradYear) {
-                            if (srYear && !isNaN(parseInt(srYear))) updatedAthletes[name].gradYear = parseInt(srYear);
-                            else if (jrYear && !isNaN(parseInt(jrYear))) updatedAthletes[name].gradYear = parseInt(jrYear) + 1;
-                            else if (soYear && !isNaN(parseInt(soYear))) updatedAthletes[name].gradYear = parseInt(soYear) + 2;
-                            else if (frYear && !isNaN(parseInt(frYear))) updatedAthletes[name].gradYear = parseInt(frYear) + 3;
+                            let yearOffset = isXC ? 1 : 0;
+                            if (srYear && !isNaN(parseInt(srYear))) updatedAthletes[name].gradYear = parseInt(srYear) + yearOffset;
+                            else if (jrYear && !isNaN(parseInt(jrYear))) updatedAthletes[name].gradYear = parseInt(jrYear) + 1 + yearOffset;
+                            else if (soYear && !isNaN(parseInt(soYear))) updatedAthletes[name].gradYear = parseInt(soYear) + 2 + yearOffset;
+                            else if (frYear && !isNaN(parseInt(frYear))) updatedAthletes[name].gradYear = parseInt(frYear) + 3 + yearOffset;
                         }
                     }
                     count++;
                 }
 
                 if (count > 0) {
-                    applyDataOverrides(updatedAthletes);
                     athletes = updatedAthletes;
-                    localStorage.setItem('perry_athlete_db_v18', JSON.stringify(athletes));
+                    localStorage.setItem('perry_athlete_db_v19', JSON.stringify(athletes));
                     
                     recalculateAllRankings();
                     renderRoster();
