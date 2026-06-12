@@ -77,7 +77,6 @@
     <div class="container">
         <div id="statusNotification" class="status-msg"></div>
 
-        <!-- SEARCH TAB PANEL -->
         <div id="panel-search" class="view-panel active">
             <div class="search-box">
                 <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
@@ -86,7 +85,6 @@
             <div id="rosterList"></div>
         </div>
 
-        <!-- RECORDS TAB PANEL -->
         <div id="panel-records" class="view-panel">
             <div style="display: flex; gap: 10px; margin-bottom: 16px;">
                 <select id="leaderboardEvent" class="leaderboard-select" style="flex: 1;" onchange="renderLeaderboard()">
@@ -116,7 +114,6 @@
             </table>
         </div>
 
-        <!-- SYNC TAB PANEL -->
         <div id="panel-admin" class="view-panel">
             <div class="admin-box">
                 <h3 style="margin-bottom: 12px; color: var(--primary);">Live Google Sheets Sync</h3>
@@ -137,7 +134,7 @@
             '3200m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBwM8kOEimN_wZH1wz9AOdDalBGnqIMau3pya67oGsFJZHKzfWUsQ8XWLc1We8xtX-Vylj09kEZkxP/pub?gid=1993866337&single=true&output=csv'
         };
 
-        // 2. INITIAL HARD CODED DATABASE STATE
+        // 2. INITIAL DATABASE PLACEHOLDER BEFORE FIRST SYNC
         const PRE_LOADED_DATA = {
             "Spencer Smith": {
                 "name": "Spencer Smith", "gradYear": 1998,
@@ -153,8 +150,8 @@
         let athletes = {};
 
         try {
-            if (localStorage.getItem('perry_athlete_data_v12')) {
-                athletes = JSON.parse(localStorage.getItem('perry_athlete_data_v12'));
+            if (localStorage.getItem('perry_athlete_data_v13')) {
+                athletes = JSON.parse(localStorage.getItem('perry_athlete_data_v13'));
             } else {
                 athletes = PRE_LOADED_DATA;
             }
@@ -162,7 +159,6 @@
             athletes = PRE_LOADED_DATA;
         }
 
-        // Keep Brandon Smith on 1998 regardless of source mistakes
         function applyDataOverrides(dataset) {
             Object.keys(dataset).forEach(name => {
                 if (name.toLowerCase().trim() === "brandon smith") {
@@ -208,10 +204,12 @@
             container.innerHTML = '';
             const items = Object.values(athletes);
 
-            if(items.length === 0 || (items.length === 2 && items[0].name === "Spencer Smith" && !localStorage.getItem('perry_athlete_data_v12'))) {
+            if(items.length === 0 || (items.length === 2 && items[0].name === "Spencer Smith" && !localStorage.getItem('perry_athlete_data_v13'))) {
                 container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted); font-weight:600;">Website initialized! Head over to the "Sync Options" tab and click Sync to fetch your roster live from Google Sheets.</p>';
                 return;
             }
+
+            items.sort((a,b) => a.name.localeCompare(b.name));
 
             items.forEach(athlete => {
                 let gradDisplay = athlete.gradYear ? `Class of ${athlete.gradYear}` : 'Grad Class: --';
@@ -265,13 +263,15 @@
             list.forEach((athlete, index) => {
                 let row = document.createElement('tr');
                 row.setAttribute('onclick', `viewAthleteDetails("${athlete.name.replace(/"/g, '&quot;')}")`);
-                row.innerHTML = `
-                    <td style="font-weight:700; color:var(--perry-gray);">${index + 1}</td>
-                    <td style="font-weight:700; color:var(--primary);">${athlete.name}</td>
-                    <td><span class="athlete-grad-year">'${String(athlete.gradYear).slice(-2)}</span></td>
-                    <td style="text-align:right; font-weight:700; color:var(--primary);">${athlete[eventType][rankType]}</td>
+                let yrDisp = athlete.gradYear ? `'${String(athlete.gradYear).slice(-2)}` : '--';
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-weight:700; color:var(--perry-gray);">${index + 1}</td>
+                        <td style="font-weight:700; color:var(--primary);">${athlete.name}</td>
+                        <td><span class="athlete-grad-year">${yrDisp}</span></td>
+                        <td style="text-align:right; font-weight:700; color:var(--primary);">${athlete[eventType][rankType]}</td>
+                    </tr>
                 `;
-                tbody.appendChild(row);
             });
         }
 
@@ -307,60 +307,50 @@
                     let rows = parseCSVText(text);
                     if (rows.length < 2) continue;
 
-                    let headers = rows[0].map(h => h.toLowerCase().trim());
-                    
-                    let nameIdx = headers.findIndex(h => h === 'name' || h.includes('athlete'));
-                    let prIdx = headers.findIndex(h => h.includes('overall') || h === 'best time' || h === 'time');
-                    
-                    let f9TimeIdx = headers.findIndex(h => h === 'best 9th' || h.includes('9th time'));
-                    let f9YearIdx = headers.findIndex(h => h === '9th year');
-                    let f10TimeIdx = headers.findIndex(h => h === 'best 10th' || h.includes('10th time'));
-                    let f10YearIdx = headers.findIndex(h => h === '10th year');
-                    let f11TimeIdx = headers.findIndex(h => h === 'best 11th' || h.includes('11th time'));
-                    let f11YearIdx = headers.findIndex(h => h === '11th year');
-                    let f12TimeIdx = headers.findIndex(h => h === 'best 12th' || h.includes('12th time'));
-                    let f12YearIdx = headers.findIndex(h => h === '12th year');
-
-                    if (nameIdx === -1) continue;
+                    let isXC = (eventName === 'XC 5K');
 
                     for (let i = 1; i < rows.length; i++) {
                         let row = rows[i];
-                        if (!row || row.length <= nameIdx) continue;
-                        let name = row[nameIdx].trim();
-                        if (!name || name.toLowerCase() === 'name') continue;
+                        if (!row || row.length < 5) continue;
+                        
+                        let name = row[1] ? row[1].trim() : '';
+                        if (!name || name.toLowerCase() === 'name' || name.toLowerCase() === 'athlete') continue;
 
                         if (!updatedAthletes[name]) {
                             updatedAthletes[name] = { name: name, gradYear: null };
                         }
 
-                        let m9Time = (f9TimeIdx !== -1 && f9TimeIdx < row.length) ? row[f9TimeIdx].trim() : '';
-                        let m9Year = (f9YearIdx !== -1 && f9YearIdx < row.length) ? row[f9YearIdx].trim() : '';
-                        let m9 = (m9Time && m9Time !== '--' && m9Time !== '0.0' && m9Time !== '0') ? (m9Time + (m9Year ? ` (${m9Year})` : '')) : '--';
+                        let pr = '', frTime = '', frYear = '', soTime = '', soYear = '', jrTime = '', jrYear = '', srTime = '', srYear = '';
 
-                        let m10Time = (f10TimeIdx !== -1 && f10TimeIdx < row.length) ? row[f10TimeIdx].trim() : '';
-                        let m10Year = (f10YearIdx !== -1 && f10YearIdx < row.length) ? row[f10YearIdx].trim() : '';
-                        let m10 = (m10Time && m10Time !== '--' && m10Time !== '0.0' && m10Time !== '0') ? (m10Time + (m10Year ? ` (${m10Year})` : '')) : '--';
+                        if (isXC) {
+                            if (row.length > 4) pr = row[4].trim();
+                            if (row.length > 10) { srYear = row[9].trim(); srTime = row[10].trim(); }
+                            if (row.length > 15) { jrYear = row[14].trim(); jrTime = row[15].trim(); }
+                            if (row.length > 20) { soYear = row[19].trim(); soTime = row[20].trim(); }
+                            if (row.length > 25) { frYear = row[24].trim(); frTime = row[25].trim(); }
+                        } else {
+                            if (row.length > 4) pr = row[4].trim();
+                            if (row.length > 8) { srYear = row[7].trim(); srTime = row[8].trim(); }
+                            if (row.length > 12) { jrYear = row[11].trim(); jrTime = row[12].trim(); }
+                            if (row.length > 16) { soYear = row[15].trim(); soTime = row[16].trim(); }
+                            if (row.length > 20) { frYear = row[19].trim(); frTime = row[20].trim(); }
+                        }
 
-                        let m11Time = (f11TimeIdx !== -1 && f11TimeIdx < row.length) ? row[f11TimeIdx].trim() : '';
-                        let m11Year = (f11YearIdx !== -1 && f11YearIdx < row.length) ? row[f11YearIdx].trim() : '';
-                        let m11 = (m11Time && m11Time !== '--' && m11Time !== '0.0' && m11Time !== '0') ? (m11Time + (m11Year ? ` (${m11Year})` : '')) : '--';
-
-                        let m12Time = (f12TimeIdx !== -1 && f12TimeIdx < row.length) ? row[f12TimeIdx].trim() : '';
-                        let m12Year = (f12YearIdx !== -1 && f12YearIdx < row.length) ? row[f12YearIdx].trim() : '';
-                        let m12 = (m12Time && m12Time !== '--' && m12Time !== '0.0' && m12Time !== '0') ? (m12Time + (m12Year ? ` (${m12Year})` : '')) : '--';
-
-                        let basePr = (prIdx !== -1 && prIdx < row.length) ? row[prIdx].trim() : '--';
+                        let m9 = (frTime && frTime !== '--' && frTime !== '0.0' && frTime !== '0') ? (frTime + (frYear ? ` (${frYear})` : '')) : '--';
+                        let m10 = (soTime && soTime !== '--' && soTime !== '0.0' && soTime !== '0') ? (soTime + (soYear ? ` (${soYear})` : '')) : '--';
+                        let m11 = (jrTime && jrTime !== '--' && jrTime !== '0.0' && jrTime !== '0') ? (jrTime + (jrYear ? ` (${jrYear})` : '')) : '--';
+                        let m12 = (srTime && srTime !== '--' && srTime !== '0.0' && srTime !== '0') ? (srTime + (srYear ? ` (${srYear})` : '')) : '--';
 
                         updatedAthletes[name][eventName] = { 
-                            'PR': (basePr && basePr !== '0.0' && basePr !== '0') ? basePr : '--', 
+                            'PR': (pr && pr !== '0.0' && pr !== '0') ? pr : '--', 
                             '9th': m9, '10th': m10, '11th': m11, '12th': m12 
                         };
 
                         if (!updatedAthletes[name].gradYear) {
-                            if (m12Year) updatedAthletes[name].gradYear = parseInt(m12Year);
-                            else if (m11Year) updatedAthletes[name].gradYear = parseInt(m11Year) + 1;
-                            else if (m10Year) updatedAthletes[name].gradYear = parseInt(m10Year) + 2;
-                            else if (m9Year) updatedAthletes[name].gradYear = parseInt(m9Year) + 3;
+                            if (srYear && !isNaN(parseInt(srYear))) updatedAthletes[name].gradYear = parseInt(srYear);
+                            else if (jrYear && !isNaN(parseInt(jrYear))) updatedAthletes[name].gradYear = parseInt(jrYear) + 1;
+                            else if (soYear && !isNaN(parseInt(soYear))) updatedAthletes[name].gradYear = parseInt(soYear) + 2;
+                            else if (frYear && !isNaN(parseInt(frYear))) updatedAthletes[name].gradYear = parseInt(frYear) + 3;
                         }
                     }
                     count++;
@@ -369,7 +359,7 @@
                 if (count > 0) {
                     applyDataOverrides(updatedAthletes);
                     athletes = updatedAthletes;
-                    localStorage.setItem('perry_athlete_data_v12', JSON.stringify(athletes));
+                    localStorage.setItem('perry_athlete_data_v13', JSON.stringify(athletes));
                     showMessage(`Successfully synced ${count} events live from Google Sheets!`);
                     renderRoster();
                     setTimeout(() => switchTab('search'), 1200);
