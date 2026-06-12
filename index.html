@@ -28,17 +28,17 @@
         header { 
             background: var(--primary); 
             color: white; 
-            padding: 12px 16px; 
+            padding: 6px 16px 10px; 
             text-align: center; 
             border-bottom: 4px solid var(--accent); 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            gap: 4px; 
+            gap: 2px; 
             position: relative; 
         }
         
-        .logo-img { max-width: 155px; height: auto; display: block; margin-bottom: -2px; }
+        .logo-img { max-width: 200px; height: auto; display: block; margin-bottom: 0; }
         header h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff; margin-top: 0; }
         header p { color: #e2e8f0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
         
@@ -132,6 +132,7 @@
         .breakdown-row-item.displacer { color: var(--text-muted); font-weight: 500; }
 
         .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; }
+        .search-trigger-fab svg { width: 26px; height: 26px; fill: none; stroke: #ffffff; stroke-width: 2.5; stroke-linecap: round; }
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .drawer-overlay.active { opacity: 1; pointer-events: auto; }
         
@@ -202,7 +203,7 @@
     </div>
 
     <div class="search-trigger-fab" id="searchFab" onclick="toggleDrawer(true)" title="Search Athletes">
-        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg>
     </div>
 
     <div class="container">
@@ -407,10 +408,8 @@
 
         function toggleDrawer(open) {
             const overlay = document.getElementById('drawerOverlay');
-            const input = document.getElementById('searchInput');
             if (open) {
                 overlay.classList.add('active');
-                setTimeout(() => input.focus(), 150);
             } else {
                 overlay.classList.remove('active');
             }
