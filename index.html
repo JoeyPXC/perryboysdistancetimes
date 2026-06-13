@@ -712,6 +712,15 @@
             // Add more as needed, e.g. 'XC 5K': { '2019': ['Name A', 'Name B'] }
         };
 
+        // For the Virtual Meet (XC 5K only): when two or more runners have the exact
+        // same time in a given season, this controls who ranks higher. List names in
+        // the order they should be ranked (first listed = ranked ahead) for that year.
+        // Anyone tied but not listed here keeps the default (unspecified) order.
+        const VIRTUAL_MEET_TIE_BREAK_OVERRIDES = {
+            '2019': ['Dominic Carosielli', 'Cooper Reed']
+            // Add more years/names as needed
+        };
+
         function computeRecordProgression(eventType) {
             // Gather every grade-level performance with a year stamp
             let entries = [];
@@ -1247,7 +1256,18 @@
                     }
                 });
 
-                seasonCandidates.sort((a, b) => a.timeSecs - b.timeSecs);
+                let tieOrder = VIRTUAL_MEET_TIE_BREAK_OVERRIDES[year];
+                seasonCandidates.sort((a, b) => {
+                    if (a.timeSecs !== b.timeSecs) return a.timeSecs - b.timeSecs;
+                    if (tieOrder) {
+                        let ai = tieOrder.indexOf(a.name);
+                        let bi = tieOrder.indexOf(b.name);
+                        if (ai !== -1 && bi !== -1) return ai - bi;
+                        if (ai !== -1) return -1;
+                        if (bi !== -1) return 1;
+                    }
+                    return 0;
+                });
                 const isJV = document.getElementById('jvModeToggle') && document.getElementById('jvModeToggle').checked;
                 const showFull = document.getElementById('showFullRosterToggle') ? document.getElementById('showFullRosterToggle').checked : true;
                 // In JV mode: skip top 7 (varsity), assign rosterRank starting at 1 for remaining
