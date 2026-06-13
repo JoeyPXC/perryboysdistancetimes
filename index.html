@@ -33,6 +33,7 @@
             --text-muted: #8892a4;
             --border: #2a2d36;
             --success: #4ade80;
+            --on-dark-text: #e8eaf0;
         }
 
         body.dark-mode .rank-table { background: var(--card-bg); }
@@ -58,6 +59,17 @@
         body.dark-mode .rank-table tr.highlighted-row:hover { background: #33270a !important; }
         body.dark-mode .season-stat-block { background: var(--card-bg) !important; border-color: var(--border) !important; }
         body.dark-mode .season-stat-block .stat-item { background: #16191f !important; }
+        /* Fix athlete name/time colors in dark mode - they use hardcoded primary (black) */
+        body.dark-mode .rank-table td .lbd-name { color: #e8eaf0 !important; }
+        body.dark-mode .rank-table td .lbd-time { color: #e8eaf0 !important; }
+        body.dark-mode .rank-table td .lbd-yr { color: #a0a4a8 !important; }
+        body.dark-mode .rank-table td .lbd-class-pill { background: #ffdd00 !important; color: #000000 !important; }
+        body.dark-mode .team-score-name, body.dark-mode .breakdown-row-item { color: #e8eaf0; }
+        body.dark-mode .breakdown-panel-title { color: #a0a4a8; }
+        body.dark-mode .checkbox-label { color: #e8eaf0; }
+        body.dark-mode .team-score-pts { color: #e8eaf0; }
+        body.dark-mode .squad-subname { color: #8892a4 !important; }
+        body.dark-mode .score-points-label { color: #f59e0b; }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg); color: var(--text); padding-bottom: 40px; overflow-x: hidden; }
@@ -95,10 +107,10 @@
         .rank-table th, .rank-table td { padding: 10px 8px; text-align: left; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
         .rank-table th { background: var(--primary); color: white; }
         
-        .col-rank { width: 48px; font-weight: 700; text-align: center; }
-        .col-grad { width: 55px; text-align: left; font-weight: 600; color: var(--perry-gray); }
+        .col-rank { width: 44px; font-weight: 700; text-align: center; }
+        .col-grad { width: 52px; text-align: center; font-weight: 600; color: var(--perry-gray); }
         .col-athlete { width: auto; }
-        .col-time { width: 105px; text-align: right; }
+        .col-time { width: 100px; text-align: center; }
 
         .rank-table tbody tr { cursor: pointer; transition: background 0.15s ease; }
         .rank-table tbody tr:hover { background: #f1f5f9; }
@@ -348,9 +360,9 @@
             <thead>
                 <tr>
                     <th class="col-rank">#</th>
-                    <th class="col-grad">Year</th>
+                    <th class="col-grad" style="text-align:center;">Year</th>
                     <th class="col-athlete">Athlete</th>
-                    <th id="rankHeaderTime" class="col-time">Time</th>
+                    <th id="rankHeaderTime" class="col-time" style="text-align:center;">Time</th>
                 </tr>
             </thead>
             <tbody id="leaderboardBody"></tbody>
@@ -409,7 +421,8 @@
 
                         if (!year || !athleteName || !meetName || year.toLowerCase() === 'year') continue;
 
-                        if (/:00$/.test(rawTime)) {
+                        // Only strip trailing :00 if it's H:MM:SS format (two colons), not M:SS like 11:00
+                        if (/:00$/.test(rawTime) && (rawTime.match(/:/g) || []).length >= 2) {
                             rawTime = rawTime.substring(0, rawTime.length - 3);
                         }
 
@@ -744,7 +757,19 @@
             for (let year of sortedYears) {
                 let meetEntries = athleteRecords[year];
                 let meetElementsHtml = "";
+
+                // Look up the validated season PR from the main athletes data (avoids 2-mile times skewing the PR)
                 let seasonPR = null;
+                let athleteObj = athletes[athleteName] || Object.values(athletes).find(a => a.name === athleteName);
+                if (athleteObj && athleteObj['XC 5K']) {
+                    let evData = athleteObj['XC 5K'];
+                    ['9th','10th','11th','12th'].forEach(grade => {
+                        if (evData[grade] && extractYearFromTimeValue(evData[grade]) === year) {
+                            let t = evData[grade].split('(')[0].trim();
+                            if (t && t !== '--') seasonPR = t;
+                        }
+                    });
+                }
 
                 let meetRowIdx = 0;
                 for (let entry of meetEntries) {
@@ -753,9 +778,6 @@
 
                     if (!meetName || !timeValue) continue;
                     if (timeValue === 'DNR' || timeValue === 'DNF' || timeValue === '--' || timeValue === '0' || timeValue === '0.0') continue;
-
-                    let timeSecs = cleanTimeToSeconds(timeValue);
-                    if (seasonPR === null || timeSecs < cleanTimeToSeconds(seasonPR)) seasonPR = timeValue;
 
                     let rowBg = meetRowIdx % 2 === 0 ? '#ffffff' : '#f1f5f9';
                     meetRowIdx++;
@@ -947,9 +969,8 @@
                 });
 
                 seasonCandidates.sort((a, b) => a.timeSecs - b.timeSecs);
-                let topSeven = seasonCandidates.slice(0, 7);
-                
-                topSeven.forEach((runner, index) => {
+                // Include full roster — top 7 score, rest are exhibition
+                seasonCandidates.forEach((runner, index) => {
                     runner.rosterRank = index + 1;
                     globalRaceEntries.push(runner);
                 });
@@ -990,6 +1011,7 @@
                     team.scoringCount++;
                     runnerScoreForTeam = finishPositionPoints;
                 }
+                // rosterRank 8+ = exhibition: they race and place, but "--" points (no team score impact)
 
                 runner.assignedMeetPoints = runnerScoreForTeam;
                 runner.globalPlace = finishPositionPoints;
@@ -1019,12 +1041,17 @@
 
                 team.runnersList.sort((a,b) => a.rosterRank - b.rosterRank);
                 let rosterRowsHtml = '';
+                let hasExhibition = team.runnersList.some(r => r.rosterRank > 7);
                 team.runnersList.forEach(runner => {
-                    let isDisplacer = runner.rosterRank > 5;
+                    let isDisplacer = runner.rosterRank === 6 || runner.rosterRank === 7;
+                    let isExhibition = runner.rosterRank > 7;
+                    let rowClass = isExhibition ? 'displacer' : (isDisplacer ? 'displacer' : '');
+                    let badge = isExhibition ? '⬜' : (isDisplacer ? '✕' : '✓');
+                    let label = isExhibition ? '<span style="font-size:9px;background:#6b7280;color:white;padding:1px 4px;border-radius:3px;margin-left:4px;">EXH</span>' : '';
                     rosterRowsHtml += `
-                        <div class="breakdown-row-item ${isDisplacer ? 'displacer' : ''}">
-                            <div><strong>#${runner.rosterRank}</strong> ${runner.name} <span style="font-size:10px;color:var(--text-muted);">[Place: ${runner.globalPlace}]</span></div>
-                            <div style="text-align:right;">${runner.displayTime} <span style="font-size:10px; font-weight:700; margin-left:4px;">${isDisplacer ? '✕' : '✓'}</span></div>
+                        <div class="breakdown-row-item ${rowClass}">
+                            <div><strong>#${runner.rosterRank}</strong> ${runner.name}${label} <span style="font-size:10px;color:var(--text-muted);">[Ovr: ${runner.globalPlace}]</span></div>
+                            <div style="text-align:right;">${runner.displayTime} <span style="font-size:10px; font-weight:700; margin-left:4px;">${badge}</span></div>
                         </div>
                     `;
                 });
@@ -1060,16 +1087,17 @@
                 let yrDisp = runner.gradYear ? `'${String(runner.gradYear).slice(-2)}` : '--';
                 // Grade label for virtual meet
                 let gradeLabelsMap = {'9':'Fr','10':'So','11':'Jr','12':'Sr'};
-                let vmClassLabel = gradeLabelsMap[runner.gradeCode] ? `<span style="font-size:10px;font-weight:800;background:var(--primary);color:var(--accent);padding:1px 4px;border-radius:3px;margin-right:4px;">${gradeLabelsMap[runner.gradeCode]}</span>` : '';
+                let vmClassLabel = gradeLabelsMap[runner.gradeCode] ? `<span class="lbd-class-pill" style="font-size:10px;font-weight:800;background:var(--primary);color:var(--accent);padding:1px 4px;border-radius:3px;margin-right:4px;">${gradeLabelsMap[runner.gradeCode]}</span>` : '';
+                let isNonScoring = (runner.assignedMeetPoints === '--');
                 row.innerHTML = `
-                    <td class="col-rank" style="color:var(--perry-gray);">${index + 1}</td>
-                    <td class="col-grad"><span style="font-size:11px;font-weight:700;color:var(--perry-gray);">${runner.team.replace(' PXC Team','')}</span></td>
+                    <td class="col-rank" style="color:var(--perry-gray);text-align:center;">${index + 1}</td>
+                    <td class="col-grad" style="text-align:center;"><span style="font-size:11px;font-weight:700;color:var(--perry-gray);">${runner.team.replace(' PXC Team','')}</span></td>
                     <td class="col-athlete">
-                        <div style="font-weight:700; color:var(--primary); text-overflow:ellipsis; overflow:hidden;">${vmClassLabel}${runner.name} <span style="font-size:11px;font-weight:600;color:var(--perry-gray);">${yrDisp}</span></div>
-                        <span class="squad-subname">${runner.rosterRank === 6 || runner.rosterRank === 7 ? runner.team + ' (Pusher)' : runner.team}</span>
+                        <div class="lbd-name" style="font-weight:700;text-overflow:ellipsis;overflow:hidden;">${vmClassLabel}${runner.name} <span class="lbd-yr" style="font-size:11px;font-weight:600;">${yrDisp}</span></div>
+                        <span class="squad-subname">${isNonScoring ? runner.team + ' (Exhibition)' : (runner.rosterRank === 6 || runner.rosterRank === 7 ? runner.team + ' (Pusher)' : runner.team)}</span>
                     </td>
-                    <td class="col-time" style="font-weight:800; color:var(--primary);">
-                        <span class="score-points-label">(${runner.assignedMeetPoints})</span>${runner.displayTime}
+                    <td class="col-time" style="text-align:center;">
+                        <span class="score-points-label">${isNonScoring ? '(—)' : '(' + runner.assignedMeetPoints + ')'}</span><span class="lbd-time" style="font-weight:800;">${runner.displayTime}</span>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1101,9 +1129,9 @@
             output += `                               Perry High School                                \n`;
             output += `                               Last Completed Event                               \n \n`;
             output += `Event 1  Boys 5k Run CC Varsity\n`;
-            output += `==================================================================================\n`;
-            output += `    Name                    Year School                Avg Mile     Finals  Points\n`;
-            output += `==================================================================================\n`;
+            output += `======================================================================================\n`;
+            output += `    Name                    Year School                Finals  Points   Avg Mile\n`;
+            output += `======================================================================================\n`;
 
             globalRaceEntriesCache.forEach((runner, idx) => {
                 let rankStr = padStringColumns(idx + 1, 3, false);
@@ -1118,9 +1146,9 @@
                 let finalClock = runner.displayTime;
                 if (!finalClock.includes('.')) finalClock += ".00";
                 let clockStr = padStringColumns(finalClock, 10, false);
-                let ptsStr = padStringColumns(runner.assignedMeetPoints, 5, false);
+                let ptsStr = runner.assignedMeetPoints === '--' ? padStringColumns('EXH', 5, false) : padStringColumns(runner.assignedMeetPoints, 5, false);
 
-                output += ` ${rankStr} ${nameStr} ${gradeStr} ${schoolStr} ${avgMileStr}   ${clockStr}  ${ptsStr}   \n`;
+                output += ` ${rankStr} ${nameStr} ${gradeStr} ${schoolStr} ${clockStr}  ${ptsStr}   ${avgMileStr}\n`;
             });
 
             output += `                                                                                  \n`;
@@ -1361,14 +1389,14 @@
                     let isXC = (eventType === 'XC 5K');
                     let gradeNum = isXC ? (diff - 1) : diff; // 0=Sr,1=Jr,2=So,3=Fr
                     const gradeLabels = {0:'Sr',1:'Jr',2:'So',3:'Fr'};
-                    classLabel = gradeLabels[gradeNum] ? `<span style="font-size:10px;font-weight:800;background:var(--primary);color:var(--accent);padding:1px 4px;border-radius:3px;margin-right:4px;">${gradeLabels[gradeNum]}</span>` : '';
+                    classLabel = gradeLabels[gradeNum] ? `<span class="lbd-class-pill" style="font-size:10px;font-weight:800;background:var(--primary);color:var(--accent);padding:1px 4px;border-radius:3px;margin-right:4px;">${gradeLabels[gradeNum]}</span>` : '';
                 }
 
                 row.innerHTML = `
                     <td class="col-rank">${typeof medal === 'string' ? `<span class="rank-medal">${medal}</span>` : `<span style="color:var(--perry-gray);font-weight:700;">${medal}</span>`}</td>
-                    <td class="col-grad">${markYearDisp}</td>
-                    <td class="col-athlete"><div style="font-weight:700; color:var(--primary); text-overflow:ellipsis; overflow:hidden;">${classLabel}${athlete.name} <span style="font-size:11px;font-weight:600;color:var(--perry-gray);">${yrDisp}</span></div></td>
-                    <td class="col-time" style="font-weight:700; color:var(--primary);">${timeHtml}</td>
+                    <td class="col-grad" style="text-align:center;">${markYearDisp}</td>
+                    <td class="col-athlete"><div class="lbd-name" style="font-weight:700;text-overflow:ellipsis;overflow:hidden;">${classLabel}${athlete.name} <span class="lbd-yr" style="font-size:11px;font-weight:600;">${yrDisp}</span></div></td>
+                    <td class="col-time" style="text-align:center;"><span class="lbd-time" style="font-weight:700;">${timeHtml}</span></td>
                 `;
                 tbody.appendChild(row);
             });
