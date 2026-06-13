@@ -550,9 +550,11 @@
         };
 
         // Matches "800 - 2:01.32", "1600 - 4:34.4", "3200 - 10:23.65", "4x800 - 2:10.2"
+        // Also matches prelim/final suffixes: "800p - 2:03.1", "800f - 2:01.3", "1600f - 4:30.2"
+        // Capture groups: (1) base event, (2) suffix p/f or empty, (3) time
         // Tolerates a stray ';' instead of ':' (a known data-entry typo), and a trailing
         // '?' on a real time (e.g. "2:11?" -> "2:11") when the tenths weren't certain.
-        const TRACK_EVENT_TIME_RE = /^(800|1600|3200|4x800)\s*-\s*(\d{1,2}[:;]\d{2}(?:\.\d{1,2})?)\??\s*$/;
+        const TRACK_EVENT_TIME_RE = /^(800|1600|3200|4x800)([pf]?)\s*-\s*(\d{1,2}[:;]\d{2}(?:\.\d{1,2})?)\??\s*$/;
 
         let trackHistoryCache = null;
         let trackHistoryFetchPromise = null;
@@ -622,8 +624,11 @@
                                     piece = piece.trim();
                                     let m = TRACK_EVENT_TIME_RE.exec(piece);
                                     if (!m) return;
-                                    let eventKey = m[1];
-                                    let time = m[2].replace(';', ':');
+                                    let baseEvent = m[1];  // e.g. "800", "1600", "4x800"
+                                    let suffix = m[2];     // "p" for prelim, "f" for final, "" for plain
+                                    let time = m[3].replace(';', ':');
+                                    // Key: "800p", "800f", "800", "1600f", "4x800", etc.
+                                    let eventKey = suffix ? (baseEvent + suffix) : baseEvent;
                                     if (!entry) entry = { meet: meetName };
                                     entry[eventKey] = time;
                                 });
@@ -1189,32 +1194,40 @@
                 }
             });
 
+            // All event keys to render in order, with display labels
+            // Plain "800" shows as "800", "800p" as "800 (P)", "800f" as "800 (F)", etc.
+            const EVENT_DISPLAY_ORDER = [
+                { key: '800p',  label: '800 (Prelim)' },
+                { key: '800f',  label: '800 (Final)' },
+                { key: '800',   label: '800' },
+                { key: '1600p', label: '1600 (Prelim)' },
+                { key: '1600f', label: '1600 (Final)' },
+                { key: '1600',  label: '1600' },
+                { key: '3200',  label: '3200' },
+                { key: '4x800', label: '4x800' },
+            ];
+
             let meetRowIdx = 0;
             for (let entry of (meetEntries || [])) {
                 let meetName = entry.meet;
+                // Build badge list for all events present in this entry
                 let eventParts = [];
-                ['800','1600','3200'].forEach(ek => {
-                    if (entry[ek]) eventParts.push(`${ek} - ${entry[ek]}`);
+                EVENT_DISPLAY_ORDER.forEach(({ key, label }) => {
+                    if (entry[key]) eventParts.push({ label, time: entry[key] });
                 });
                 if (eventParts.length === 0) continue;
 
                 let rowBg = meetRowIdx % 2 === 0 ? 'var(--card-bg)' : 'var(--bg)';
                 meetRowIdx++;
 
-                let splitHtml = '';
-                if (entry['4x800']) {
-                    splitHtml = `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">4x800 split: ${entry['4x800']}</div>`;
-                }
-
-                let timesHtml = eventParts.map(p => `<span style="font-weight:800;color:var(--accent);background:var(--primary);padding:1px 6px;border-radius:4px;white-space:nowrap;display:inline-block;margin-left:4px;">${p}</span>`).join('');
+                let timesHtml = eventParts.map(({ label, time }) =>
+                    `<span style="font-weight:800;color:var(--accent);background:var(--primary);padding:1px 6px;border-radius:4px;white-space:nowrap;display:inline-block;margin-left:4px;">${label} - ${time}</span>`
+                ).join('');
 
                 meetElementsHtml += `
-                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 8px;border-bottom:1px dashed var(--border);background:${rowBg};flex-wrap:wrap;gap:4px;">
-                        <span style="font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">
-                            ${meetName}
-                            ${splitHtml}
-                        </span>
-                        <span style="white-space:nowrap;">${timesHtml}</span>
+                    <div style="display:flex;justify-content:space-between;align-items:start;font-size:12px;padding:6px 8px;border-bottom:1px dashed var(--border);background:${rowBg};flex-wrap:wrap;gap:4px;">
+                        <span style="font-weight:600;color:var(--text);flex:1;min-width:0;padding-right:8px;padding-top:2px;">${meetName}</span>
+                        <span style="display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;">${timesHtml}</span>
                     </div>
                 `;
             }
@@ -1358,7 +1371,7 @@
                         <div class="events-grid">${eventsHtml}</div>
                         
                         <div class="meet-history-section" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px;">
-                            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--perry-gray); margin-bottom: 6px; letter-spacing: 0.3px; font-weight: 800;">📋 Meet-by-Meet XC History</h4>
+                            <h4 style="font-size: 11px; text-transform: uppercase; color: var(--perry-gray); margin-bottom: 6px; letter-spacing: 0.3px; font-weight: 800;">📋 Meet-by-Meet History</h4>
                             <div class="meet-history-vertical-grid" id="history-grid-${safeId}" style="background: var(--bg); border-radius: 8px; border: 1px solid var(--border); padding: 4px;">
                                 <p style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px;">Loading historical meet times…</p>
                             </div>
