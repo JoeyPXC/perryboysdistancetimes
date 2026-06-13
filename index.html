@@ -59,6 +59,8 @@
         body.dark-mode .rank-table tr.highlighted-row:hover { background: #33270a !important; }
         body.dark-mode .season-stat-block { background: var(--card-bg) !important; border-color: var(--border) !important; }
         body.dark-mode .season-stat-block .stat-item { background: #16191f !important; }
+        body.dark-mode .stat-value { color: #e8eaf0 !important; }
+        body.dark-mode .stat-label { color: #8892a4 !important; }
         /* Fix athlete name/time colors in dark mode - they use hardcoded primary (black) */
         body.dark-mode .rank-table td .lbd-name { color: #e8eaf0 !important; }
         body.dark-mode .rank-table td .lbd-time { color: #e8eaf0 !important; }
@@ -120,6 +122,7 @@
         .rank-table th { background: var(--primary); color: white; }
         
         .col-rank { width: 44px; font-weight: 700; text-align: center; }
+        .col-rank span { display: inline-block; width: 100%; text-align: center; }
         .col-grad { width: 52px; text-align: center; font-weight: 600; color: var(--perry-gray); }
         .col-athlete { width: auto; }
         .col-time { width: 100px; text-align: center; }
@@ -355,6 +358,16 @@
                 <span id="selectAllMeetYearsBtn" class="select-all-toggle-link" onclick="toggleSelectAllMeetYears()">Select All</span>
             </div>
             <div id="meetSeasonCheckboxes" class="checkbox-grid"></div>
+            <div style="display:flex;gap:12px;margin:8px 0 4px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                    <input type="checkbox" id="jvModeToggle" onchange="executeVirtualMeetCalculation()" style="accent-color:var(--accent);width:15px;height:15px;">
+                    JV Mode <span style="font-size:10px;font-weight:500;color:var(--text-muted);">(skip top 7, rank remaining)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;">
+                    <input type="checkbox" id="showFullRosterToggle" onchange="executeVirtualMeetCalculation()" checked style="accent-color:var(--accent);width:15px;height:15px;">
+                    Show full depth <span style="font-size:10px;font-weight:500;color:var(--text-muted);">(runners beyond scorer)</span>
+                </label>
+            </div>
             <div class="meet-btn-group">
                 <button class="action-btn" onclick="executeVirtualMeetCalculation()">Score Meet</button>
                 <button class="export-btn" onclick="exportVirtualMeetToHytek()">Export 💾</button>
@@ -981,9 +994,23 @@
                 });
 
                 seasonCandidates.sort((a, b) => a.timeSecs - b.timeSecs);
-                // Include full roster — top 7 score, rest are exhibition
+                const isJV = document.getElementById('jvModeToggle') && document.getElementById('jvModeToggle').checked;
+                const showFull = document.getElementById('showFullRosterToggle') ? document.getElementById('showFullRosterToggle').checked : true;
+                // In JV mode: skip top 7 (varsity), assign rosterRank starting at 1 for remaining
+                // In varsity mode: all runners enter, top 7 score/push, rest exhibition
+                const skipCount = isJV ? 7 : 0;
+                let jvRank = 0;
                 seasonCandidates.forEach((runner, index) => {
-                    runner.rosterRank = index + 1;
+                    const overallRosterRank = index + 1;
+                    if (isJV) {
+                        if (overallRosterRank <= skipCount) return; // skip varsity runners
+                        jvRank++;
+                        runner.rosterRank = jvRank;
+                    } else {
+                        runner.rosterRank = overallRosterRank;
+                    }
+                    // Apply show-full-roster toggle: if off, only include scorers + pushers (ranks 1-7)
+                    if (!showFull && runner.rosterRank > 7) return;
                     globalRaceEntries.push(runner);
                 });
             });
@@ -1078,7 +1105,7 @@
                     </div>
                     <div class="team-roster-breakdown-panel">
                         <div class="breakdown-panel-header">
-                            <span class="breakdown-panel-title">Varsity Lineup Breakdown</span>
+                            <span class="breakdown-panel-title">${document.getElementById('jvModeToggle') && document.getElementById('jvModeToggle').checked ? 'JV' : 'Varsity'} Lineup Breakdown</span>
                         </div>
                         ${rosterRowsHtml}
                     </div>
@@ -1099,12 +1126,13 @@
                 let gradeLabelsMap = {'9':'Fr','10':'So','11':'Jr','12':'Sr'};
                 let vmClassLabel = gradeLabelsMap[runner.gradeCode] ? `<span class="lbd-class-pill" style="font-size:10px;font-weight:800;background:var(--primary);color:var(--accent);padding:1px 4px;border-radius:3px;margin-right:4px;">${gradeLabelsMap[runner.gradeCode]}</span>` : '';
                 let isNonScoring = (runner.assignedMeetPoints === '--');
+                const isJVMode = document.getElementById('jvModeToggle') && document.getElementById('jvModeToggle').checked;
                 row.innerHTML = `
                     <td class="col-rank" style="color:var(--perry-gray);text-align:center;">${index + 1}</td>
                     <td class="col-grad" style="text-align:center;"><span style="font-size:11px;font-weight:700;color:var(--perry-gray);">${runner.team.replace(' PXC Team','')}</span></td>
                     <td class="col-athlete">
                         <div class="lbd-name" style="font-weight:700;text-overflow:ellipsis;overflow:hidden;">${vmClassLabel}${runner.name} <span class="lbd-yr" style="font-size:11px;font-weight:600;">${yrDisp}</span></div>
-                        <span class="squad-subname">${isNonScoring ? runner.team + ' (Exhibition)' : (runner.rosterRank === 6 || runner.rosterRank === 7 ? runner.team + ' (Pusher)' : runner.team)}</span>
+                        <span class="squad-subname">${isNonScoring ? runner.team + (isJVMode ? ' (JV Exhibition)' : ' (Exhibition)') : (runner.rosterRank === 6 || runner.rosterRank === 7 ? runner.team + (isJVMode ? ' (JV Pusher)' : ' (Pusher)') : runner.team)}</span>
                     </td>
                     <td class="col-time" style="text-align:center;">
                         <span class="score-points-label">${isNonScoring ? '(--)' : '(' + runner.assignedMeetPoints + ')'}</span><span class="lbd-time" style="font-weight:800;">${runner.displayTime}</span>
