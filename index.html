@@ -366,7 +366,7 @@
     <div class="container">
         <div id="recordBanner" class="record-banner" style="display:none;">
             <div class="record-banner-left">
-                <span class="record-banner-label">🏆 All-Time Program Record</span>
+                <span class="record-banner-label" id="recordBannerLabel">🏆 All-Time Program Record</span>
                 <span class="record-banner-name" id="recordName">—</span>
             </div>
             <span class="record-banner-time" id="recordTime">—</span>
@@ -1425,9 +1425,10 @@
 
             if(list.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px;">No matching times found on file.</td></tr>';
-                // Remove any stat block
                 let oldStat = document.getElementById('seasonStatBlock');
                 if (oldStat) oldStat.remove();
+                let oldStrip = document.getElementById('seasonBestStrip');
+                if (oldStrip) oldStrip.remove();
                 return;
             }
 
@@ -1464,13 +1465,56 @@
                 tableWrapper.parentNode.insertBefore(statBlock, tableWrapper);
             }
 
-            // Update record banner
+            // Update record banner — always show true all-time program best, not the filtered list leader
             if (list.length > 0) {
                 const banner = document.getElementById('recordBanner');
-                const isCareerPR = (rankType === 'PR');
                 banner.style.display = 'flex';
-                document.getElementById('recordName').textContent = list[0].name + (list[0].gradYear ? ` · '${String(list[0].gradYear).slice(-2)}` : '');
-                document.getElementById('recordTime').textContent = list[0].calculatedDisplayTime.split('(')[0].trim();
+
+                if (rankType === 'SEASON_YEAR') {
+                    // Compute all-time best from scratch for this event
+                    let allTimeBest = null;
+                    let allTimeSecs = Infinity;
+                    Object.values(athletes).forEach(a => {
+                        if (a[eventType] && a[eventType]['PR']) {
+                            let s = cleanTimeToSeconds(a[eventType]['PR']);
+                            if (s < allTimeSecs) {
+                                allTimeSecs = s;
+                                allTimeBest = a;
+                            }
+                        }
+                    });
+                    if (allTimeBest) {
+                        document.getElementById('recordBannerLabel').textContent = '🏆 All-Time Program Record';
+                        document.getElementById('recordName').textContent = allTimeBest.name + (allTimeBest.gradYear ? ` · '${String(allTimeBest.gradYear).slice(-2)}` : '');
+                        document.getElementById('recordTime').textContent = allTimeBest[eventType]['PR'].split('(')[0].trim();
+                    }
+                    // Show season best as a second strip above the table
+                    let oldSeasonBest = document.getElementById('seasonBestStrip');
+                    if (oldSeasonBest) oldSeasonBest.remove();
+                    const seasonLeader = list[0];
+                    const seasonStrip = document.createElement('div');
+                    seasonStrip.id = 'seasonBestStrip';
+                    seasonStrip.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:var(--card-bg);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;padding:10px 14px;margin-bottom:10px;gap:10px;';
+                    const targetYear = document.getElementById('leaderboardSeasonYear').value;
+                    const gradeLabelsMap2 = {'9th':'Fr','10th':'So','11th':'Jr','12th':'Sr'};
+                    const gradeText = seasonLeader.matchedGrade ? gradeLabelsMap2[seasonLeader.matchedGrade] || '' : '';
+                    seasonStrip.innerHTML = `
+                        <div>
+                            <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:2px;">⚡ ${targetYear} Season Best</div>
+                            <div style="font-size:14px;font-weight:800;color:var(--text);">${seasonLeader.name}<span style="font-size:11px;font-weight:600;color:var(--text-muted);margin-left:6px;">${gradeText}</span></div>
+                        </div>
+                        <div style="font-size:22px;font-weight:900;color:var(--accent);background:var(--primary);padding:3px 10px;border-radius:8px;white-space:nowrap;">${seasonLeader.calculatedDisplayTime.split('(')[0].trim()}</div>
+                    `;
+                    const tableWrapper = document.querySelector('.rank-table-wrapper');
+                    tableWrapper.parentNode.insertBefore(seasonStrip, tableWrapper);
+                } else {
+                    // Non-season view: banner just shows list[0] as before
+                    let oldSeasonBest = document.getElementById('seasonBestStrip');
+                    if (oldSeasonBest) oldSeasonBest.remove();
+                    document.getElementById('recordBannerLabel').textContent = '🏆 All-Time Program Record';
+                    document.getElementById('recordName').textContent = list[0].name + (list[0].gradYear ? ` · '${String(list[0].gradYear).slice(-2)}` : '');
+                    document.getElementById('recordTime').textContent = list[0].calculatedDisplayTime.split('(')[0].trim();
+                }
             }
 
             list.forEach((athlete, index) => {
