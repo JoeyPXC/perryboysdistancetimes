@@ -1315,7 +1315,11 @@
             const tbody = document.getElementById('leaderboardBody');
             const careerContainer = document.getElementById('careerProgressiveView');
             
-            if (rankType === 'VIRTUAL_MEET') return;
+            if (rankType === 'VIRTUAL_MEET') {
+                let leftoverStrip = document.getElementById('seasonBestStrip');
+                if (leftoverStrip) leftoverStrip.remove();
+                return;
+            }
 
             tbody.innerHTML = '';
             careerContainer.innerHTML = '';
