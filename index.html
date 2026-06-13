@@ -1387,8 +1387,12 @@
                         let evData = athlete[eventType];
                         let matchedTimeStr = null;
 
+                        let matchedGrade = null;
                         ['9th', '10th', '11th', '12th'].forEach(grade => {
-                            if (extractYearFromTimeValue(evData[grade]) === targetYear) matchedTimeStr = evData[grade];
+                            if (extractYearFromTimeValue(evData[grade]) === targetYear) {
+                                matchedTimeStr = evData[grade];
+                                matchedGrade = grade;
+                            }
                         });
 
                         if (matchedTimeStr) {
@@ -1396,7 +1400,8 @@
                             list.push({
                                 name: athlete.name,
                                 gradYear: athlete.gradYear,
-                                calculatedDisplayTime: displayTime
+                                calculatedDisplayTime: displayTime,
+                                matchedGrade: matchedGrade
                             });
                         }
                     }
@@ -1514,9 +1519,12 @@
                 // When filtering by season year: show grade in col-grad, drop class pill from name
                 let gradCell, namePrefix;
                 if (rankType === 'SEASON_YEAR') {
-                    gradCell = classLabel
-                        ? `<td class="col-grad" style="text-align:center;">${classLabel}</td>`
-                        : `<td class="col-grad" style="text-align:center;color:var(--text-muted);font-size:11px;">--</td>`;
+                    const gradeLabelsMap = {'9th':'Fr','10th':'So','11th':'Jr','12th':'Sr'};
+                    const gradeText = athlete.matchedGrade ? gradeLabelsMap[athlete.matchedGrade] : null;
+                    const gradePill = gradeText
+                        ? `<span class="lbd-class-pill" style="font-size:10px;font-weight:800;background:var(--primary);color:var(--accent);padding:1px 6px;border-radius:3px;">${gradeText}</span>`
+                        : `<span style="color:var(--text-muted);font-size:11px;">--</span>`;
+                    gradCell = `<td class="col-grad" style="text-align:center;">${gradePill}</td>`;
                     namePrefix = ''; // grade already in its own column
                 } else {
                     gradCell = `<td class="col-grad" style="text-align:center;">${markYearDisp}</td>`;
