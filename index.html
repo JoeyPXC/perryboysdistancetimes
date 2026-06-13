@@ -550,8 +550,9 @@
         };
 
         // Matches "800 - 2:01.32", "1600 - 4:34.4", "3200 - 10:23.65", "4x800 - 2:10.2"
-        // Tolerates a stray ';' instead of ':' (a known data-entry typo).
-        const TRACK_EVENT_TIME_RE = /^(800|1600|3200|4x800)\s*-\s*(\d{1,2}[:;]\d{2}(?:\.\d{1,2})?)\s*$/;
+        // Tolerates a stray ';' instead of ':' (a known data-entry typo), and a trailing
+        // '?' on a real time (e.g. "2:11?" -> "2:11") when the tenths weren't certain.
+        const TRACK_EVENT_TIME_RE = /^(800|1600|3200|4x800)\s*-\s*(\d{1,2}[:;]\d{2}(?:\.\d{1,2})?)\??\s*$/;
 
         let trackHistoryCache = null;
         let trackHistoryFetchPromise = null;
@@ -1123,191 +1124,165 @@
             }, 350);
         }
 
+        function buildXCSeasonHtml(athleteName, year, meetEntries) {
+            let meetElementsHtml = "";
+
+            let seasonPR = null;
+            let athleteObj = athletes[athleteName] || Object.values(athletes).find(a => a.name === athleteName);
+            if (athleteObj && athleteObj['XC 5K']) {
+                let evData = athleteObj['XC 5K'];
+                ['9th','10th','11th','12th'].forEach(grade => {
+                    if (evData[grade] && extractYearFromTimeValue(evData[grade]) === year) {
+                        let t = evData[grade].split('(')[0].trim();
+                        if (t && t !== '--') seasonPR = t;
+                    }
+                });
+            }
+
+            let meetRowIdx = 0;
+            for (let entry of (meetEntries || [])) {
+                let meetName = entry.meet;
+                let timeValue = entry.time;
+                if (!meetName || !timeValue) continue;
+                if (timeValue === 'DNR' || timeValue === 'DNF' || timeValue === '--' || timeValue === '0' || timeValue === '0.0') continue;
+
+                let rowBg = meetRowIdx % 2 === 0 ? 'var(--card-bg)' : 'var(--bg)';
+                meetRowIdx++;
+                meetElementsHtml += `
+                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 8px;border-bottom:1px dashed var(--border);background:${rowBg};">
+                        <span style="font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">${meetName}</span>
+                        <span style="font-weight:800;color:var(--accent);background:var(--primary);padding:1px 6px;border-radius:4px;white-space:nowrap;">${timeValue}</span>
+                    </div>
+                `;
+            }
+
+            if (meetElementsHtml === "") return null;
+
+            return `
+                <div style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);overflow:hidden;">
+                    <div style="background:var(--primary);color:var(--accent);padding:5px 10px;font-size:11px;font-weight:800;display:flex;justify-content:space-between;align-items:center;">
+                        <span>📅 ${year} Cross Country Season</span>
+                        ${seasonPR ? `<span style="background:var(--accent);color:var(--primary);padding:1px 6px;border-radius:4px;font-size:10px;">Season PR: ${seasonPR}</span>` : ''}
+                    </div>
+                    <div>${meetElementsHtml}</div>
+                </div>
+            `;
+        }
+
+        function buildTrackSeasonHtml(athleteName, year, meetEntries) {
+            let meetElementsHtml = "";
+
+            // Season PR badges for whichever of 800/1600/3200 this athlete has data for
+            let athleteObj = athletes[athleteName] || Object.values(athletes).find(a => a.name === athleteName);
+            let prBadges = '';
+            ['800m','1600m','3200m'].forEach(ev => {
+                if (athleteObj && athleteObj[ev]) {
+                    let evData = athleteObj[ev];
+                    ['9th','10th','11th','12th'].forEach(grade => {
+                        if (evData[grade] && extractYearFromTimeValue(evData[grade]) === year) {
+                            let t = evData[grade].split('(')[0].trim();
+                            if (t && t !== '--') {
+                                prBadges += `<span style="background:var(--accent);color:var(--primary);padding:1px 6px;border-radius:4px;font-size:10px;margin-left:4px;">${ev.replace('m','')}: ${t}</span>`;
+                            }
+                        }
+                    });
+                }
+            });
+
+            let meetRowIdx = 0;
+            for (let entry of (meetEntries || [])) {
+                let meetName = entry.meet;
+                let eventParts = [];
+                ['800','1600','3200'].forEach(ek => {
+                    if (entry[ek]) eventParts.push(`${ek} - ${entry[ek]}`);
+                });
+                if (eventParts.length === 0) continue;
+
+                let rowBg = meetRowIdx % 2 === 0 ? 'var(--card-bg)' : 'var(--bg)';
+                meetRowIdx++;
+
+                let splitHtml = '';
+                if (entry['4x800']) {
+                    splitHtml = `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">4x800 split: ${entry['4x800']}</div>`;
+                }
+
+                let timesHtml = eventParts.map(p => `<span style="font-weight:800;color:var(--accent);background:var(--primary);padding:1px 6px;border-radius:4px;white-space:nowrap;display:inline-block;margin-left:4px;">${p}</span>`).join('');
+
+                meetElementsHtml += `
+                    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 8px;border-bottom:1px dashed var(--border);background:${rowBg};flex-wrap:wrap;gap:4px;">
+                        <span style="font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">
+                            ${meetName}
+                            ${splitHtml}
+                        </span>
+                        <span style="white-space:nowrap;">${timesHtml}</span>
+                    </div>
+                `;
+            }
+
+            if (meetElementsHtml === "") return null;
+
+            return `
+                <div style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);overflow:hidden;">
+                    <div style="background:var(--primary);color:var(--accent);padding:5px 10px;font-size:11px;font-weight:800;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+                        <span>📅 ${year} Track Season</span>
+                        <span>${prBadges}</span>
+                    </div>
+                    <div>${meetElementsHtml}</div>
+                </div>
+            `;
+        }
+
         async function loadAthleteMeetHistory(athleteName, targetGridId) {
             const gridContainer = document.getElementById(targetGridId);
             if (!gridContainer) return;
 
-            const currentEvent = document.getElementById('leaderboardEvent') ? document.getElementById('leaderboardEvent').value : 'XC 5K';
-            if (currentEvent !== 'XC 5K') {
-                return loadTrackMeetHistory(athleteName, targetGridId, currentEvent);
-            }
+            gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">⏳ Loading career history…</p>`;
 
-            gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">⏳ Loading season history…</p>`;
+            const [xcHistory, trackHistory] = await Promise.all([getXCHistoryData(), getTrackHistoryData()]);
 
-            const historyData = await getXCHistoryData();
-
-            if (!historyData) {
+            if (!xcHistory && !trackHistory) {
                 gridContainer.innerHTML = `<p style="font-size:11px;color:#991b1b;text-align:center;padding:12px;">Could not load season history. Check your connection or publishing settings.</p>`;
                 return;
             }
 
             let targetLookupKey = athleteName.toLowerCase().replace(/[^a-z0-9]/g, '');
-            let match = historyData[targetLookupKey];
 
-            if (!match) {
-                let keys = Object.keys(historyData);
-                let foundKey = keys.find(k => k.includes(targetLookupKey) || targetLookupKey.includes(k));
-                if (foundKey) match = historyData[foundKey];
+            function findMatch(historyData) {
+                if (!historyData) return null;
+                let match = historyData[targetLookupKey];
+                if (!match) {
+                    let keys = Object.keys(historyData);
+                    let foundKey = keys.find(k => k.includes(targetLookupKey) || targetLookupKey.includes(k));
+                    if (foundKey) match = historyData[foundKey];
+                }
+                return (match && match.seasons) ? match.seasons : null;
             }
 
-            if (!match || !match.seasons) {
-                gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">No meet history found for this runner.</p>`;
-                return;
-            }
+            let xcSeasons = findMatch(xcHistory) || {};
+            let trackSeasons = findMatch(trackHistory) || {};
 
-            let athleteRecords = match.seasons;
+            // Build the set of years to walk, descending. For each XC year Y, both Y
+            // and Y+1 (the following spring's track season) need to be considered.
+            let yearSet = new Set();
+            Object.keys(trackSeasons).forEach(y => yearSet.add(parseInt(y, 10)));
+            Object.keys(xcSeasons).forEach(y => {
+                let yi = parseInt(y, 10);
+                yearSet.add(yi);
+                yearSet.add(yi + 1);
+            });
+
+            let sortedYears = Array.from(yearSet).sort((a, b) => b - a);
+
             let compiledGridHtml = "";
-            let foundAnyData = false;
+            sortedYears.forEach(y => {
+                let trackHtml = buildTrackSeasonHtml(athleteName, String(y), trackSeasons[String(y)]);
+                if (trackHtml) compiledGridHtml += trackHtml;
 
-            const sortedYears = Object.keys(athleteRecords).sort((a, b) => b - a);
+                let xcHtml = buildXCSeasonHtml(athleteName, String(y - 1), xcSeasons[String(y - 1)]);
+                if (xcHtml) compiledGridHtml += xcHtml;
+            });
 
-            for (let year of sortedYears) {
-                let meetEntries = athleteRecords[year];
-                let meetElementsHtml = "";
-
-                // Look up the validated season PR from the main athletes data (avoids 2-mile times skewing the PR)
-                let seasonPR = null;
-                let athleteObj = athletes[athleteName] || Object.values(athletes).find(a => a.name === athleteName);
-                if (athleteObj && athleteObj['XC 5K']) {
-                    let evData = athleteObj['XC 5K'];
-                    ['9th','10th','11th','12th'].forEach(grade => {
-                        if (evData[grade] && extractYearFromTimeValue(evData[grade]) === year) {
-                            let t = evData[grade].split('(')[0].trim();
-                            if (t && t !== '--') seasonPR = t;
-                        }
-                    });
-                }
-
-                let meetRowIdx = 0;
-                for (let entry of meetEntries) {
-                    let meetName = entry.meet;
-                    let timeValue = entry.time;
-
-                    if (!meetName || !timeValue) continue;
-                    if (timeValue === 'DNR' || timeValue === 'DNF' || timeValue === '--' || timeValue === '0' || timeValue === '0.0') continue;
-
-                    let rowBg = meetRowIdx % 2 === 0 ? 'var(--card-bg)' : 'var(--bg)';
-                    meetRowIdx++;
-                    foundAnyData = true;
-                    meetElementsHtml += `
-                        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 8px;border-bottom:1px dashed var(--border);background:${rowBg};">
-                            <span style="font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">${meetName}</span>
-                            <span style="font-weight:800;color:var(--accent);background:var(--primary);padding:1px 6px;border-radius:4px;white-space:nowrap;">${timeValue}</span>
-                        </div>
-                    `;
-                }
-
-                if (meetElementsHtml !== "") {
-                    compiledGridHtml += `
-                        <div style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);overflow:hidden;">
-                            <div style="background:var(--primary);color:var(--accent);padding:5px 10px;font-size:11px;font-weight:800;display:flex;justify-content:space-between;align-items:center;">
-                                <span>📅 ${year} Cross Country Season</span>
-                                ${seasonPR ? `<span style="background:var(--accent);color:var(--primary);padding:1px 6px;border-radius:4px;font-size:10px;">Season PR: ${seasonPR}</span>` : ''}
-                            </div>
-                            <div>${meetElementsHtml}</div>
-                        </div>
-                    `;
-                }
-            }
-
-            if (foundAnyData) {
-                gridContainer.innerHTML = compiledGridHtml;
-            } else {
-                gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">No meet history found for this runner.</p>`;
-            }
-        }
-
-        async function loadTrackMeetHistory(athleteName, targetGridId, currentEvent) {
-            const gridContainer = document.getElementById(targetGridId);
-            if (!gridContainer) return;
-
-            gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">⏳ Loading season history…</p>`;
-
-            const targetEventKey = currentEvent.replace('m', ''); // '800m' -> '800', etc.
-            const historyData = await getTrackHistoryData();
-
-            if (!historyData) {
-                gridContainer.innerHTML = `<p style="font-size:11px;color:#991b1b;text-align:center;padding:12px;">Could not load season history. Check your connection or publishing settings.</p>`;
-                return;
-            }
-
-            let targetLookupKey = athleteName.toLowerCase().replace(/[^a-z0-9]/g, '');
-            let match = historyData[targetLookupKey];
-
-            if (!match) {
-                let keys = Object.keys(historyData);
-                let foundKey = keys.find(k => k.includes(targetLookupKey) || targetLookupKey.includes(k));
-                if (foundKey) match = historyData[foundKey];
-            }
-
-            if (!match || !match.seasons) {
-                gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">No meet history found for this runner.</p>`;
-                return;
-            }
-
-            let athleteRecords = match.seasons;
-            let compiledGridHtml = "";
-            let foundAnyData = false;
-
-            const sortedYears = Object.keys(athleteRecords).sort((a, b) => b - a);
-
-            for (let year of sortedYears) {
-                let meetEntries = athleteRecords[year];
-                let meetElementsHtml = "";
-
-                // Look up the season PR for this event from the main athletes data
-                let seasonPR = null;
-                let athleteObj = athletes[athleteName] || Object.values(athletes).find(a => a.name === athleteName);
-                if (athleteObj && athleteObj[currentEvent]) {
-                    let evData = athleteObj[currentEvent];
-                    ['9th','10th','11th','12th'].forEach(grade => {
-                        if (evData[grade] && extractYearFromTimeValue(evData[grade]) === year) {
-                            let t = evData[grade].split('(')[0].trim();
-                            if (t && t !== '--') seasonPR = t;
-                        }
-                    });
-                }
-
-                let meetRowIdx = 0;
-                for (let entry of meetEntries) {
-                    let meetName = entry.meet;
-                    let timeValue = entry[targetEventKey];
-                    if (!meetName || !timeValue) continue;
-
-                    let rowBg = meetRowIdx % 2 === 0 ? 'var(--card-bg)' : 'var(--bg)';
-                    meetRowIdx++;
-                    foundAnyData = true;
-
-                    let splitHtml = '';
-                    if (entry['4x800']) {
-                        splitHtml = `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">4x800 split: ${entry['4x800']}</div>`;
-                    }
-
-                    meetElementsHtml += `
-                        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 8px;border-bottom:1px dashed var(--border);background:${rowBg};">
-                            <span style="font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">
-                                ${meetName}
-                                ${splitHtml}
-                            </span>
-                            <span style="font-weight:800;color:var(--accent);background:var(--primary);padding:1px 6px;border-radius:4px;white-space:nowrap;">${timeValue}</span>
-                        </div>
-                    `;
-                }
-
-                if (meetElementsHtml !== "") {
-                    compiledGridHtml += `
-                        <div style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);overflow:hidden;">
-                            <div style="background:var(--primary);color:var(--accent);padding:5px 10px;font-size:11px;font-weight:800;display:flex;justify-content:space-between;align-items:center;">
-                                <span>📅 ${year} Track Season</span>
-                                ${seasonPR ? `<span style="background:var(--accent);color:var(--primary);padding:1px 6px;border-radius:4px;font-size:10px;">Season PR: ${seasonPR}</span>` : ''}
-                            </div>
-                            <div>${meetElementsHtml}</div>
-                        </div>
-                    `;
-                }
-            }
-
-            if (foundAnyData) {
+            if (compiledGridHtml !== "") {
                 gridContainer.innerHTML = compiledGridHtml;
             } else {
                 gridContainer.innerHTML = `<p style="font-size:11px;color:var(--text-muted);text-align:center;padding:12px;">No meet history found for this runner.</p>`;
