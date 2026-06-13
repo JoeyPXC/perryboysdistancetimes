@@ -1,4 +1,5 @@
 {
+  "id": "/perryboysdistancetimes/",
   "name": "Perry Boys Distance Times",
   "short_name": "Perry Distance",
   "description": "Perry High School Boys Distance XC & Track Career Leaderboards",
@@ -8,6 +9,9 @@
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait-primary",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["sports"],
   "icons": [
     {
       "src": "icon-192.png",
