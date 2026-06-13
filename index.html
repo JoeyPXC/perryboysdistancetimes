@@ -49,9 +49,13 @@
         body.dark-mode .event-row { background: #16191f; }
         body.dark-mode .prog-step { background: var(--card-bg); border-color: var(--border); }
         body.dark-mode .team-roster-breakdown-panel { background: #16191f; }
+        body.dark-mode .team-accordion-group { background: var(--card-bg); border-color: var(--border); }
+        body.dark-mode .team-score-card { background: var(--card-bg); }
         body.dark-mode .team-score-card:hover { background: #22262f; }
         body.dark-mode .team-accordion-group.place-1 .team-score-card { background: #2a1f00; }
         body.dark-mode .team-accordion-group.place-1 .team-score-card:hover { background: #33270a; }
+        body.dark-mode .breakdown-row-item { border-bottom-color: #2a2d36; }
+        body.dark-mode .breakdown-panel-header { border-bottom-color: #2a2d36; }
         body.dark-mode .drawer-content { background: var(--bg); }
         body.dark-mode .drawer-header { background: var(--card-bg); }
         body.dark-mode .modal-search-box input { background: var(--bg); color: var(--text); }
@@ -1031,10 +1035,20 @@
                 };
             });
 
+            // Track per-team race place counter (separate from scoringCount which is pre-sorted)
+            let teamRacePlaceCounter = {};
+            selectedYears.forEach(y => { teamRacePlaceCounter[y + " PXC Team"] = 0; });
+
             globalRaceEntries.forEach((runner, index) => {
                 let finishPositionPoints = index + 1;
                 let team = teamStandingsMap[runner.team];
                 let runnerScoreForTeam = "--";
+
+                // Increment this team's race place counter for every runner who finishes
+                teamRacePlaceCounter[runner.team]++;
+                let thisRunnerTeamPlace = teamRacePlaceCounter[runner.team];
+                // Team place shown in grid: only for runners within top 7 of their team in the race
+                runner.teamPlaceInRace = thisRunnerTeamPlace <= 7 ? thisRunnerTeamPlace : "--";
 
                 if (team.scoringCount < 5) {
                     team.points += finishPositionPoints;
@@ -1127,8 +1141,12 @@
                 let vmClassLabel = gradeLabelsMap[runner.gradeCode] ? `<span class="lbd-class-pill" style="font-size:10px;font-weight:800;background:var(--primary);color:var(--accent);padding:1px 4px;border-radius:3px;margin-right:4px;">${gradeLabelsMap[runner.gradeCode]}</span>` : '';
                 let isNonScoring = (runner.assignedMeetPoints === '--');
                 const isJVMode = document.getElementById('jvModeToggle') && document.getElementById('jvModeToggle').checked;
+                let teamPlaceDisp = runner.teamPlaceInRace !== undefined ? runner.teamPlaceInRace : '--';
                 row.innerHTML = `
-                    <td class="col-rank" style="color:var(--perry-gray);text-align:center;">${index + 1}</td>
+                    <td class="col-rank" style="text-align:center;">
+                        <span style="display:block;font-size:10px;font-weight:800;color:var(--perry-gray);">${index + 1}</span>
+                        <span style="display:block;font-size:9px;font-weight:600;color:${teamPlaceDisp === '--' ? 'var(--text-muted)' : 'var(--accent-dark,#b45309)'};">${teamPlaceDisp === '--' ? '--' : '#' + teamPlaceDisp}</span>
+                    </td>
                     <td class="col-grad" style="text-align:center;"><span style="font-size:11px;font-weight:700;color:var(--perry-gray);">${runner.team.replace(' PXC Team','')}</span></td>
                     <td class="col-athlete">
                         <div class="lbd-name" style="font-weight:700;text-overflow:ellipsis;overflow:hidden;">${vmClassLabel}${runner.name} <span class="lbd-yr" style="font-size:11px;font-weight:600;">${yrDisp}</span></div>
