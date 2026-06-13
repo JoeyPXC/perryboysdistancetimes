@@ -471,6 +471,7 @@
             </div>
             <div class="meet-btn-group">
                 <button class="action-btn" onclick="executeVirtualMeetCalculation()">Score Meet</button>
+                <button class="export-btn" onclick="openVirtualMeetInNewTab()">Open 🔗</button>
                 <button class="export-btn" onclick="exportVirtualMeetToHytek()">Export 💾</button>
             </div>
         </div>
@@ -1422,12 +1423,7 @@
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
-        function exportVirtualMeetToHytek() {
-            if (!globalRaceEntriesCache || globalRaceEntriesCache.length === 0 || !virtualMeetStandingsCache || virtualMeetStandingsCache.length === 0) {
-                showMessage("Please choose tracking options and Score Meet before exporting.", true);
-                return;
-            }
-
+        function buildVirtualMeetHytekHtml() {
             let output = `\n<HTML>\n<BODY>\n<P>\n<PRE>\npx`;
             output += ` Virtual Meet Simulator                                      HY-TEK's Meet Manager\n`;
             output += `                  All-Time Cross Country Championship Rankings                  \n`;
@@ -1487,6 +1483,17 @@
             output += `=================================================================================\n`;
             output += `</PRE>\n</BODY>\n</HTML>`;
 
+            return output;
+        }
+
+        function exportVirtualMeetToHytek() {
+            if (!globalRaceEntriesCache || globalRaceEntriesCache.length === 0 || !virtualMeetStandingsCache || virtualMeetStandingsCache.length === 0) {
+                showMessage("Please choose tracking options and Score Meet before exporting.", true);
+                return;
+            }
+
+            let output = buildVirtualMeetHytekHtml();
+
             let blob = new Blob([output], { type: "text/html;charset=utf-8" });
             let downloadLink = document.createElement("a");
             downloadLink.href = URL.createObjectURL(blob);
@@ -1495,6 +1502,18 @@
             downloadLink.click();
             document.body.removeChild(downloadLink);
             showMessage("HY-TEK flat file generated successfully!");
+        }
+
+        function openVirtualMeetInNewTab() {
+            if (!globalRaceEntriesCache || globalRaceEntriesCache.length === 0 || !virtualMeetStandingsCache || virtualMeetStandingsCache.length === 0) {
+                showMessage("Please choose tracking options and Score Meet before viewing.", true);
+                return;
+            }
+
+            let output = buildVirtualMeetHytekHtml();
+            let blob = new Blob([output], { type: "text/html;charset=utf-8" });
+            let url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
         }
 
         function renderLeaderboard() {
