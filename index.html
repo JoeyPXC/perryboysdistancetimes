@@ -673,6 +673,17 @@
             return matches ? matches[1] : null;
         }
 
+        // Manual tie-breaks for same-year record progressions where the data
+        // only has a year (not a date), but you know the actual order events happened.
+        // List names in the order the records were set within that year.
+        const RECORD_PROGRESSION_OVERRIDES = {
+            '3200': {
+                '2005': ['Dustin Ford', 'JD Horton'],
+                '2007': ['Ty Griffin', 'Josh Tormasi']
+            }
+            // Add more as needed, e.g. 'XC 5K': { '2019': ['Name A', 'Name B'] }
+        };
+
         function computeRecordProgression(eventType) {
             // Gather every grade-level performance with a year stamp
             let entries = [];
@@ -697,25 +708,45 @@
 
             if (entries.length === 0) return [];
 
-            // For each year, find that year's fastest performance
-            let bestByYear = {};
+            // Group entries by year
+            let entriesByYear = {};
             entries.forEach(e => {
-                if (!bestByYear[e.year] || e.seconds < bestByYear[e.year].seconds) {
-                    bestByYear[e.year] = e;
-                }
+                if (!entriesByYear[e.year]) entriesByYear[e.year] = [];
+                entriesByYear[e.year].push(e);
             });
 
-            let years = Object.keys(bestByYear).map(y => parseInt(y, 10)).sort((a, b) => a - b);
+            let years = Object.keys(entriesByYear).map(y => parseInt(y, 10)).sort((a, b) => a - b);
+            let overrides = RECORD_PROGRESSION_OVERRIDES[eventType] || {};
 
-            // Walk chronologically, recording each time a new all-time best is set
+            // Walk chronologically; within a year, check entries in override order
+            // (if specified) so multiple record-breaks in the same year are captured.
+            // Otherwise default to that year's single fastest performance.
             let progression = [];
             let currentBestSecs = Infinity;
             years.forEach(year => {
-                let candidate = bestByYear[year];
-                if (candidate.seconds < currentBestSecs) {
-                    progression.push(candidate);
-                    currentBestSecs = candidate.seconds;
+                let yearEntries = entriesByYear[year];
+                let order = overrides[String(year)];
+
+                let orderedEntries;
+                if (order) {
+                    orderedEntries = [];
+                    order.forEach(name => {
+                        let match = yearEntries.find(e => e.name === name);
+                        if (match) orderedEntries.push(match);
+                    });
+                    // include any entries not covered by the override, in default order
+                    yearEntries.forEach(e => { if (!orderedEntries.includes(e)) orderedEntries.push(e); });
+                } else {
+                    // Default: just that year's fastest
+                    orderedEntries = [yearEntries.reduce((best, e) => (!best || e.seconds < best.seconds) ? e : best, null)];
                 }
+
+                orderedEntries.forEach(candidate => {
+                    if (candidate.seconds < currentBestSecs) {
+                        progression.push(candidate);
+                        currentBestSecs = candidate.seconds;
+                    }
+                });
             });
 
             return progression.reverse(); // most recent record first
