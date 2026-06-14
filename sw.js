@@ -1,7 +1,6 @@
-const CACHE_NAME = 'perry-distance-v3';
+const CACHE_NAME = 'perry-distance-v4';
 
 const APP_SHELL = [
-  './',
   './manifest.json',
   './Mass. Perry Black Outline.png',
   './icon-192.png',
@@ -30,6 +29,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = event.request.url;
 
+  // Google Sheets CSVs — network first, fall back to cache
   if (url.includes('docs.google.com') || url.includes('spreadsheets')) {
     event.respondWith(
       fetch(event.request)
@@ -40,16 +40,33 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => caches.match(event.request))
     );
-  } else {
+    return;
+  }
+
+  // Main HTML file — always network first so updates show immediately.
+  // Falls back to cache only if offline.
+  if (url.endsWith('/') || url.endsWith('.html')) {
     event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(response => {
+      fetch(event.request)
+        .then(response => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return response;
-        });
-      })
+        })
+        .catch(() => caches.match(event.request))
     );
+    return;
   }
+
+  // Everything else (icons, manifest, images) — cache first, network fallback
+  event.respondWith(
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+      return fetch(event.request).then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      });
+    })
+  );
 });
