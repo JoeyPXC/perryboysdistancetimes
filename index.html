@@ -393,22 +393,6 @@
         body.dark-mode .program-snapshot-label { color: #8892a4 !important; }
         body.dark-mode .program-snapshot-link:hover { background: #20242c !important; }
 
-        /* Program Timeline page */
-        .program-timeline-intro { font-size: 12px; color: var(--text-muted); padding: 0 2px 14px; line-height: 1.5; }
-        .program-timeline { position: relative; padding-left: 70px; }
-        .program-timeline::before { content: ''; position: absolute; left: 57px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
-        .timeline-row { position: relative; margin-bottom: 16px; }
-        .timeline-row:last-child { margin-bottom: 0; }
-        .timeline-year { position: absolute; left: 0; top: 3px; width: 46px; text-align: right; font-size: 13px; font-weight: 800; color: var(--text); }
-        .timeline-dot { position: absolute; left: 53px; top: 7px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--primary); box-sizing: border-box; }
-        .timeline-content { padding-top: 1px; }
-        .timeline-milestone { font-size: 12px; font-weight: 700; color: var(--text); padding: 5px 10px; border-radius: 6px; display: inline-block; margin: 0 6px 6px 0; background: var(--bg); border: 1px solid var(--border); }
-        .timeline-milestone-first { background: #fef9c3; border-color: #f59e0b; color: #92400e; }
-        .timeline-milestone-return { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
-        body.dark-mode .timeline-milestone { background: #16191f; }
-        body.dark-mode .timeline-milestone-first { background: #2a1f00; border-color: #b45309; color: #fbbf24; }
-        body.dark-mode .timeline-milestone-return { background: #1e2a4a; border-color: #3b82f6; color: #93c5fd; }
-
         /* ── Hamburger / Nav Menu ─────────────────────────────────────── */
         .hamburger-btn { position: absolute; top: 12px; left: 60px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; z-index: 10; flex-direction: column; gap: 4px; padding: 10px; }
         .hamburger-btn:hover { background: rgba(255,255,255,0.2); }
@@ -1484,7 +1468,7 @@
         }
 
         // ── Program Accomplishments Data ─────────────────────────────────
-        // Shared by the Accomplishments page and the Program Timeline page.
+        // Powers the Accomplishments page (sections + Program Snapshot).
         // Each array is a list of XC seasons (by fall year) the team earned
         // that result.
         const stateTeams    = [1988,1993,1999,2001,2005,2021,2022];
@@ -3103,96 +3087,6 @@
         }
 
 
-        // ── PROGRAM TIMELINE ─────────────────────────────────────────────
-        // Auto-generated from the same accomplishment arrays that power the
-        // Accomplishments page. For each "headline" category (State/Regional/
-        // District/Federal/Stark qualifying teams & champions), the earliest
-        // year is flagged "First ..."; a year arriving after a 10+ year gap
-        // in that category is flagged "Return to ...". Runner-up categories
-        // are listed plainly. The program's first-ever individual state
-        // qualifier is also called out.
-        const TIMELINE_RETURN_GAP_YEARS = 10;
-
-        function buildProgramTimeline() {
-            const categories = [
-                { arr: stateTeams,    label: 'State Qualifying Team',    allowReturn: true },
-                { arr: regQual,       label: 'Regional Qualifying Team', allowReturn: true },
-                { arr: distChamp,     label: 'District Champion',        allowReturn: true },
-                { arr: fedChamp,      label: 'Federal League Champion',  allowReturn: true },
-                { arr: starkChamp,    label: 'Stark County Champion',    allowReturn: true },
-                { arr: regRunnerup,   label: 'Regional Runner-Up',       allowReturn: false },
-                { arr: distRunnerup,  label: 'District Runner-Up',       allowReturn: false },
-                { arr: fedRunnerup,   label: 'Federal League Runner-Up', allowReturn: false },
-                { arr: starkRunnerup, label: 'Stark County Runner-Up',   allowReturn: false },
-            ];
-
-            const milestones = [];
-
-            categories.forEach(cat => {
-                const years = [...cat.arr].sort((a, b) => a - b);
-                years.forEach((y, i) => {
-                    if (i === 0) {
-                        milestones.push({ year: y, label: `First ${cat.label}`, type: 'first' });
-                    } else if (cat.allowReturn && (y - years[i - 1]) >= TIMELINE_RETURN_GAP_YEARS) {
-                        milestones.push({ year: y, label: `Return to ${cat.label}`, type: 'return' });
-                    } else {
-                        milestones.push({ year: y, label: cat.label, type: 'normal' });
-                    }
-                });
-            });
-
-            // First-ever individual state qualifier across all athletes.
-            const allIndYears = [];
-            indState.forEach(r => r.years.forEach(y => allIndYears.push(y)));
-            if (allIndYears.length) {
-                milestones.push({ year: Math.min(...allIndYears), label: 'First Individual State Qualifier', type: 'first' });
-            }
-
-            // Group by year (ascending), with "first" / "return" milestones
-            // surfaced before plain ones within the same year.
-            const byYear = {};
-            milestones.forEach(m => { (byYear[m.year] = byYear[m.year] || []).push(m); });
-
-            const typeOrder = { first: 0, return: 1, normal: 2 };
-            return Object.keys(byYear)
-                .map(Number)
-                .sort((a, b) => a - b)
-                .map(year => ({
-                    year,
-                    items: byYear[year].sort((a, b) => typeOrder[a.type] - typeOrder[b.type])
-                }));
-        }
-
-        // Renders the timeline as an HTML string for embedding inside the
-        // collapsible "Program Timeline" section on the Year by Year page.
-        function buildProgramTimelineHtml() {
-            const timeline = buildProgramTimeline();
-            if (!timeline.length) {
-                return `<p style="text-align:center;padding:20px;color:var(--text-muted);font-weight:600;">No timeline data found.</p>`;
-            }
-
-            let html = `<p class="program-timeline-intro">🌟 = a first for the program &nbsp;·&nbsp; ↩️ = a return after a 10+ year gap</p>`;
-            html += `<div class="program-timeline">`;
-            timeline.forEach(({ year, items }) => {
-                html += `
-                    <div class="timeline-row">
-                        <span class="timeline-year">${year}</span>
-                        <span class="timeline-dot"></span>
-                        <div class="timeline-content">
-                            ${items.map(m => {
-                                const cls = m.type === 'first' ? 'timeline-milestone-first' : m.type === 'return' ? 'timeline-milestone-return' : '';
-                                const icon = m.type === 'first' ? '🌟 ' : m.type === 'return' ? '↩️ ' : '';
-                                return `<span class="timeline-milestone ${cls}">${icon}${m.label}</span>`;
-                            }).join('')}
-                        </div>
-                    </div>`;
-            });
-            html += `</div>`;
-            return html;
-        }
-
-
-
         // Build a map of XC season year -> meet-by-meet team results, sourced
         // from the same all-time history sheet used on athlete profile pages.
         // Shape: { [year]: { meetOrder: [meetName,...], meets: { [meetName]: [{name, time}, ...] } } }
@@ -3314,15 +3208,6 @@
                 dataRows.sort((a, b) => parseInt(b[yearCol]) - parseInt(a[yearCol]));
 
                 let html = `<input type="text" class="ybyr-search" id="ybyrSearch" placeholder="Search year, coach, or result…" oninput="filterYearCards(this.value)">`;
-
-                html += `
-                    <div class="collapsible-toggle" onclick="this.classList.toggle('expanded'); this.nextElementSibling.classList.toggle('expanded')">
-                        <span>📜 Program Timeline</span>
-                        <svg class="ybyr-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
-                    </div>
-                    <div class="collapsible-body">
-                        ${buildProgramTimelineHtml()}
-                    </div>`;
 
                 dataRows.forEach(row => {
                     const year    = row[yearCol].trim();
