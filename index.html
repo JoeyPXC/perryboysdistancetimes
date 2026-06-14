@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perry Boys Distance Times</title>
+    <title>Perry Distance Times</title>
     <meta name="theme-color" content="#000000">
     <link rel="icon" type="image/png" href="Mass. Perry Black Outline.png">
     <link rel="manifest" href="manifest.json">
@@ -156,6 +156,14 @@
             background-size: 16px 16px;
             flex-shrink: 0;
         }
+
+        /* Boys / Girls / All toggle, shown just below the checkerboard
+           strip at the top of the page. */
+        .gender-toggle-row { display: flex; justify-content: center; padding: 10px 12px 0; }
+        .gender-toggle-group { display: inline-flex; background: var(--card-bg); border: 2px solid var(--primary); border-radius: 10px; overflow: hidden; }
+        .gender-toggle-btn { border: none; background: none; color: var(--text); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 22px; cursor: pointer; transition: all 0.15s; }
+        .gender-toggle-btn + .gender-toggle-btn { border-left: 2px solid var(--primary); }
+        .gender-toggle-btn.active { background: var(--primary); color: var(--accent); }
 
         /* Site footer — Panther mark, program name, and social links.
            Bookends the checkerboard strip from the header. */
@@ -537,10 +545,17 @@
         </div>
         <span class="sync-timestamp" id="syncTimestamp"></span>
         <img src="Mass. Perry Black Outline.png" alt="Perry Athletics Logo" class="logo-img" style="max-width:180px; margin-bottom:-10px;">
-        <h1>Perry Boys Distance Times</h1>
+        <h1>Perry Distance Times</h1>
         <p>XC & Track Career Leaderboards</p>
     </header>
     <div class="checker-border"></div>
+    <div class="gender-toggle-row">
+        <div class="gender-toggle-group">
+            <button class="gender-toggle-btn active" data-gender="M" onclick="setGenderFilter('M')">Boys</button>
+            <button class="gender-toggle-btn" data-gender="F" onclick="setGenderFilter('F')">Girls</button>
+            <button class="gender-toggle-btn" data-gender="ALL" onclick="setGenderFilter('ALL')">All</button>
+        </div>
+    </div>
 
     <!-- ── Year by Year / Accomplishments Overlay ───────────────── -->
     <div class="nav-overlay" id="navOverlay">
@@ -703,6 +718,18 @@
             '800m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSH-y7sfLRFZnu0Q4FMVJLHoCvLgchZtoN_ytMKileZFBioqWeczHnzFEiO8ztzh89PUh-GYF8bHjL2/pub?gid=1993866337&single=true&output=csv',
             '1600m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk7Da1mjKZqHsrDlQZq_z9iQPmG4cf1orBODj37mo5qle4ImTHyeO39dBu5mplV3NrOaRzuLBeph8k/pub?gid=1993866337&single=true&output=csv',
             '3200m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTBwM8kOEimN_wZH1wz9AOdDalBGnqIMau3pya67oGsFJZHKzfWUsQ8XWLc1We8xtX-Vylj09kEZkxP/pub?gid=1993866337&single=true&output=csv'
+        };
+
+        // Girls leaderboard sheets — same column layout as the boys sheets
+        // above (verified for XC 5K: PR at column 4, Sr/Jr/So/Fr year+time
+        // pairs at 9/10, 14/15, 19/20, 24/25). Athletes loaded from this set
+        // are tagged gender:'F' in fetchLiveGoogleSheets; boys config and
+        // data are untouched.
+        const GIRLS_GOOGLE_SHEET_CSV_URLS = {
+            'XC 5K': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQKZa2THRzRrwaUXukbXDO7KYenaUhXJrvvwO9DJg0s_HbxZCBxM-lLWIKnXHHMaKdLmY47F5liBkND/pub?output=csv',
+            '800m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQSSEDLbZG16GxK8Stkx1UBPO-JGrDQxy57ab4usN6fofQmU-CSw51qxVODbN4uG6vF1E5lEHXHiuvf/pub?output=csv',
+            '1600m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTJjAB6EBg8tnhxGyNUN4Cg0mzTdnQsAA-EUtzTNDxkZ6KLnd8j9taBYomieC-0gJTNwAUfYkP7Miev/pub?output=csv',
+            '3200m': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS5JXpsj6hmRKVvCQPBdXlPr0YK3-7JYIDrnu7NS-oVf3XXz7Vmm2vWAyIk61u_t0bHBlqFNXuAdvfH/pub?output=csv'
         };
 
         const XC_ALL_TIME_HISTORY_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-3btJXTHknwy-ko0O1pinK71_v5hS51PDH-U3yoM2QK2hIeVJAfnIbLSDKSsrVzNjzT-LyIYlYghl/pub?gid=1287484724&single=true&output=csv";
@@ -944,6 +971,45 @@
         let virtualMeetStandingsCache = [];
         let globalRaceEntriesCache = [];
 
+        // ── Boys / Girls / All toggle ─────────────────────────────────────
+        // Default 'M' preserves the existing experience for returning users.
+        // 'F' = girls only, 'ALL' = both combined (e.g. for shared rankings).
+        let genderFilter = 'M';
+
+        function genderMatches(athlete) {
+            if (genderFilter === 'ALL') return true;
+            return athlete.gender === genderFilter;
+        }
+
+        function setGenderFilter(g) {
+            if (g === genderFilter) return;
+            genderFilter = g;
+            document.querySelectorAll('.gender-toggle-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.gender === g);
+            });
+            recalculateAllRankings();
+            populateSeasonYearDropdown();
+            renderLeaderboard();
+            renderRoster();
+            if (navCurrentTab === 'alumni') {
+                document.getElementById('navHeaderTitle').textContent = alumniPageTitle();
+                renderAlumniPage(document.getElementById('navBody'));
+            }
+            try { localStorage.setItem('perry_gender_filter', g); } catch(e) {}
+        }
+
+        // Restore last-selected Boys/Girls/All choice (defaults to Boys).
+        try {
+            const savedGender = localStorage.getItem('perry_gender_filter');
+            if (savedGender === 'F' || savedGender === 'ALL') genderFilter = savedGender;
+        } catch(e) {}
+
+        // Sync the toggle buttons' active state with the restored choice
+        // (the static HTML always marks "Boys" active by default).
+        document.querySelectorAll('.gender-toggle-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.gender === genderFilter);
+        });
+
         function getLastName(fullName) {
             if (!fullName) return '';
             let parts = fullName.trim().split(/\s+/);
@@ -1076,6 +1142,7 @@
             // Gather every grade-level performance with a year stamp
             let entries = [];
             Object.values(athletes).forEach(athlete => {
+                if (!genderMatches(athlete)) return;
                 if (!athlete[eventType]) return;
                 ['9th', '10th', '11th', '12th'].forEach(grade => {
                     let raw = athlete[eventType][grade];
@@ -1194,6 +1261,7 @@
         function generateUniqueYearsList() {
             let yearSet = new Set();
             Object.values(athletes).forEach(athlete => {
+                if (!genderMatches(athlete)) return;
                 if (athlete['XC 5K']) {
                     ['9th', '10th', '11th', '12th'].forEach(grade => {
                         let yr = extractYearFromTimeValue(athlete['XC 5K'][grade]);
@@ -1300,7 +1368,7 @@
                 rankingsCache[ev] = {};
                 categories.forEach(cat => {
                     let sorted = Object.values(athletes)
-                        .filter(a => a[ev] && a[ev][cat] && a[ev][cat] !== 'NT' && a[ev][cat] !== '' && a[ev][cat] !== '--')
+                        .filter(a => genderMatches(a) && a[ev] && a[ev][cat] && a[ev][cat] !== 'NT' && a[ev][cat] !== '' && a[ev][cat] !== '--')
                         .sort((a, b) => cleanTimeToSeconds(a[ev][cat]) - cleanTimeToSeconds(b[ev][cat]));
                     
                     rankingsCache[ev][cat] = {};
@@ -1323,8 +1391,8 @@
         }
 
         try {
-            if (localStorage.getItem('perry_athlete_db_v19')) {
-                athletes = JSON.parse(localStorage.getItem('perry_athlete_db_v19'));
+            if (localStorage.getItem('perry_athlete_db_v20')) {
+                athletes = JSON.parse(localStorage.getItem('perry_athlete_db_v20'));
                 recalculateAllRankings();
             }
         } catch(e) {
@@ -1650,6 +1718,35 @@
             'jayden simonson':    { name: 'Jayden Simonson',    hsGradYear: 2026, colleges: ['Malone University'] },
         };
 
+        // Girls collegiate alumni — same shape as COLLEGE_RUNNERS above
+        // (the "Years Run" column from the source sheet isn't displayed
+        // anywhere yet, so it's omitted here).
+        const GIRLS_COLLEGE_RUNNERS = {
+            'leslie schoppelrey': { name: 'Leslie Schoppelrey', hsGradYear: 1990, colleges: ['Miami University'] },
+            'michelle riegler':   { name: 'Michelle Riegler',   hsGradYear: 1992, colleges: ['Eastern Michigan University'] },
+            'kathy eddins':       { name: 'Kathy Eddins',       hsGradYear: 1997, colleges: ['Malone College'] },
+            'gigi hopple':        { name: 'Gigi Hopple',        hsGradYear: 1997, colleges: ['Malone College', 'University of Akron'] },
+            'kelli wise':         { name: 'Kelli Wise',         hsGradYear: 1997, colleges: ['Ohio Northern University'] },
+            'tiffany smith':      { name: 'Tiffany Smith',      hsGradYear: 1998, colleges: ['University of Mississippi'] },
+            'dara ford':          { name: 'Dara Ford',          hsGradYear: 2001, colleges: ['Mount Union College'] },
+            'sherri douglas':     { name: 'Sherri Douglas',     hsGradYear: 2003, colleges: ['Cleveland State University'] },
+            'kristen emhoff':     { name: 'Kristen Emhoff',     hsGradYear: 2005, colleges: ['Williams College'] },
+            'noelle mack':        { name: 'Noelle Mack',        hsGradYear: 2006, colleges: ['Malone College'] },
+            'katie horton':       { name: 'Katie Horton',       hsGradYear: 2009, colleges: ['Ohio Northern University'] },
+            'kaylie snyder':      { name: 'Kaylie Snyder',      hsGradYear: 2009, colleges: ['Ashland University'] },
+            'stacy cameron':      { name: 'Stacy Cameron',      hsGradYear: 2011, colleges: ['Malone University', 'University of Mount Union'] },
+            'alex hamit':         { name: 'Alex Hamit',         hsGradYear: 2012, colleges: ['University of Mount Union'] },
+            'jackie genetin':     { name: 'Jackie Genetin',     hsGradYear: 2013, colleges: ['Ashland University'] },
+            'kylie church':       { name: 'Kylie Church',       hsGradYear: 2014, colleges: ['Notre Dame College'] },
+            'sydney fenn':        { name: 'Sydney Fenn',        hsGradYear: 2015, colleges: ['Walsh University'] },
+            'lexi echelberry':    { name: 'Lexi Echelberry',    hsGradYear: 2017, colleges: ['Indiana Wesleyan University'] },
+            'madelyn bartolone':  { name: 'Madelyn Bartolone',  hsGradYear: 2018, colleges: ['Ohio University'] },
+            'katie williams':     { name: 'Katie Williams',     hsGradYear: 2019, colleges: ['Cuyahoga Community College'] },
+            'laura genetin':      { name: 'Laura Genetin',      hsGradYear: 2019, colleges: ['University of Akron'] },
+            'hannah groff':       { name: 'Hannah Groff',       hsGradYear: 2020, colleges: ['Walsh University'] },
+            'chloe dostal':       { name: 'Chloe Dostal',       hsGradYear: 2025, colleges: ['The Ohio State University'] },
+        };
+
         // School name -> TFRRS team logo (https://logos.tfrrs.org/<slug>.png).
         // Confirmed pattern from Walsh ("walsh.png"); the rest are best-guess
         // slugs following the same lowercase/hyphenated short-name convention
@@ -1675,16 +1772,32 @@
             'Harding University': 'https://logos.tfrrs.org/harding.png',
             'West Liberty University': 'https://logos.tfrrs.org/west-liberty-state.png',
             'Messiah University': 'https://logos.tfrrs.org/messiah.png',
+            // Girls-program additions, plus a couple of name-change aliases
+            // (the alumni sheet uses the school's name at the time the
+            // athlete attended, e.g. "Malone College" pre-2007).
+            'Malone College': 'https://logos.tfrrs.org/malone.png',
+            'Mount Union College': 'https://logos.tfrrs.org/svgs/mount-union.svg',
+            'Miami University': 'https://logos.tfrrs.org/miami-oh.png',
+            'Eastern Michigan University': 'https://logos.tfrrs.org/eastern-michigan.png',
+            'Ohio Northern University': 'https://logos.tfrrs.org/ohio-northern.png',
+            'University of Mississippi': 'https://logos.tfrrs.org/mississippi.png',
+            'Cleveland State University': 'https://logos.tfrrs.org/cleveland-state.png',
+            'Williams College': 'https://logos.tfrrs.org/williams.png',
+            'Notre Dame College': 'https://logos.tfrrs.org/notre-dame-oh.png',
+            'Indiana Wesleyan University': 'https://logos.tfrrs.org/indiana-wesleyan.png',
+            'Ohio University': 'https://logos.tfrrs.org/ohio.png',
+            'Cuyahoga Community College': 'https://logos.tfrrs.org/cuyahoga-cc.png',
         };
 
         function getCollegeInfo(athlete) {
+            const runnersMap = athlete.gender === 'F' ? GIRLS_COLLEGE_RUNNERS : COLLEGE_RUNNERS;
             const key = (athlete.name || '').toLowerCase().trim();
-            if (COLLEGE_RUNNERS[key]) return COLLEGE_RUNNERS[key];
+            if (runnersMap[key]) return runnersMap[key];
             if (!athlete.gradYear) return null;
             const lastName = getLastName(athlete.name);
             const grad = String(athlete.gradYear);
-            for (const k in COLLEGE_RUNNERS) {
-                const info = COLLEGE_RUNNERS[k];
+            for (const k in runnersMap) {
+                const info = runnersMap[k];
                 if (String(info.hsGradYear) === grad && getLastName(info.name) === lastName) {
                     return info;
                 }
@@ -1745,7 +1858,7 @@
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const container = document.getElementById('rosterList');
             container.innerHTML = '';
-            const items = Object.values(athletes);
+            const items = Object.values(athletes).filter(genderMatches);
 
             if(items.length === 0) {
                 container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted); font-weight:600;">Building profile database...</p>';
@@ -1870,7 +1983,7 @@
                 let seasonCandidates = [];
                 
                 Object.values(athletes).forEach(athlete => {
-                    if (athlete['XC 5K']) {
+                    if (genderMatches(athlete) && athlete['XC 5K']) {
                         let evData = athlete['XC 5K'];
                         let bestTimeThisYear = Infinity;
                         let bestTimeStringThisYear = null;
@@ -2196,7 +2309,7 @@
             careerContainer.innerHTML = '';
 
             let sortedPRList = Object.values(athletes)
-                .filter(a => a[eventType] && a[eventType]['PR'] && a[eventType]['PR'] !== 'NT' && a[eventType]['PR'] !== '' && a[eventType]['PR'] !== '--')
+                .filter(a => genderMatches(a) && a[eventType] && a[eventType]['PR'] && a[eventType]['PR'] !== 'NT' && a[eventType]['PR'] !== '' && a[eventType]['PR'] !== '--')
                 .sort((a, b) => cleanTimeToSeconds(a[eventType]['PR']) - cleanTimeToSeconds(b[eventType]['PR']));
 
             if (rankType === 'CAREER_ALL') {
@@ -2258,7 +2371,7 @@
                 document.querySelector('th.col-grad').innerText = 'Grade';
 
                 Object.values(athletes).forEach(athlete => {
-                    if (athlete[eventType]) {
+                    if (genderMatches(athlete) && athlete[eventType]) {
                         let evData = athlete[eventType];
                         let matchedTimeStr = null;
 
@@ -2288,7 +2401,7 @@
                 document.querySelector('th.col-grad').innerText = 'Year';
 
                 let rawList = Object.values(athletes)
-                    .filter(a => a[eventType] && a[eventType][rankType] && a[eventType][rankType] !== 'NT' && a[eventType][rankType] !== '' && a[eventType][rankType] !== '--')
+                    .filter(a => genderMatches(a) && a[eventType] && a[eventType][rankType] && a[eventType][rankType] !== 'NT' && a[eventType][rankType] !== '' && a[eventType][rankType] !== '--')
                     .sort((a, b) => cleanTimeToSeconds(a[eventType][rankType]) - cleanTimeToSeconds(b[eventType][rankType]));
 
                 list = rawList.map(a => ({
@@ -2350,7 +2463,7 @@
                     let allTimeBest = null;
                     let allTimeSecs = Infinity;
                     Object.values(athletes).forEach(a => {
-                        if (a[eventType] && a[eventType]['PR']) {
+                        if (genderMatches(a) && a[eventType] && a[eventType]['PR']) {
                             let s = cleanTimeToSeconds(a[eventType]['PR']);
                             if (s < allTimeSecs) {
                                 allTimeSecs = s;
@@ -2638,10 +2751,21 @@
                 showMessage("Syncing real-time records from Google Sheets...");
             }
 
-            try {
-                for (const [eventName, url] of Object.entries(GOOGLE_SHEET_CSV_URLS)) {
+            // Loads one gender's set of leaderboard sheets into
+            // updatedAthletes, tagging each athlete with gender:'M' or 'F'.
+            // Boys and girls sheets share the same column layout (see the
+            // GIRLS_GOOGLE_SHEET_CSV_URLS comment), so this single routine
+            // handles both — only the URL map and gender tag differ.
+            //
+            // NOTE: athletes are keyed by name. A boy and girl sharing the
+            // exact same full name would collide here (the second one
+            // loaded would overwrite the first's record). This hasn't come
+            // up in practice; if it ever does, the fix is to key girls'
+            // entries separately when a collision is detected.
+            async function loadGenderSheets(urlMap, gender) {
+                for (const [eventName, url] of Object.entries(urlMap)) {
                     if (!url) continue;
-                    
+
                     let res = await fetch(url + '&cachebust=' + new Date().getTime());
                     let text = await res.text();
                     let rows = parseCSVText(text);
@@ -2652,12 +2776,12 @@
                     for (let i = 1; i < rows.length; i++) {
                         let row = rows[i];
                         if (!row || row.length < 5) continue;
-                        
+
                         let name = row[1] ? row[1].trim() : '';
                         if (!name || name.toLowerCase() === 'name' || name.toLowerCase() === 'athlete' || name.toLowerCase() === 'team total') continue;
 
                         if (!updatedAthletes[name]) {
-                            updatedAthletes[name] = { name: name, gradYear: null };
+                            updatedAthletes[name] = { name: name, gradYear: null, gender: gender };
                         }
 
                         let pr = '', frTime = '', frYear = '', soTime = '', soYear = '', jrTime = '', jrYear = '', srTime = '', srYear = '';
@@ -2704,10 +2828,15 @@
                     }
                     count++;
                 }
+            }
+
+            try {
+                await loadGenderSheets(GOOGLE_SHEET_CSV_URLS, 'M');
+                await loadGenderSheets(GIRLS_GOOGLE_SHEET_CSV_URLS, 'F');
 
                 if (count > 0) {
                     athletes = updatedAthletes;
-                    localStorage.setItem('perry_athlete_db_v19', JSON.stringify(athletes));
+                    localStorage.setItem('perry_athlete_db_v20', JSON.stringify(athletes));
                     
                     recalculateAllRankings();
                     populateSeasonYearDropdown();
@@ -2717,7 +2846,7 @@
                     // The Collegiate Runners list depends on roster data to
                     // build its PR/progression cards, so drop its cache and
                     // re-render now if the user happens to be on that tab.
-                    navCache.alumni = null;
+                    navCache.alumni = { M: null, F: null, ALL: null };
                     if (navCurrentTab === 'alumni') renderAlumniPage(document.getElementById('navBody'));
 
                     const now = new Date();
@@ -2889,7 +3018,7 @@
             }
         }
 
-        let navCache = { yearbyyear: null, alumni: null };
+        let navCache = { yearbyyear: null, alumni: { M: null, F: null, ALL: null } };
 
         // Delegated click handler for expandable cards rendered inside the
         // nav drawer (currently just the Collegiate Runners list). Attached
@@ -2926,12 +3055,19 @@
 
         let navCurrentTab = 'yearbyyear';
 
+        // Collegiate tab title reflects the current Boys/Girls/All toggle.
+        function alumniPageTitle() {
+            if (genderFilter === 'F') return '🎓 Girls Collegiate Runners';
+            if (genderFilter === 'M') return '🎓 Boys Collegiate Runners';
+            return '🎓 Collegiate Runners';
+        }
+
         function switchNavTab(tab) {
             navCurrentTab = tab;
             document.getElementById('navTabYBY').classList.toggle('active', tab === 'yearbyyear');
             document.getElementById('navTabAccomp').classList.toggle('active', tab === 'accomplishments');
             document.getElementById('navTabAlumni').classList.toggle('active', tab === 'alumni');
-            document.getElementById('navHeaderTitle').textContent = tab === 'yearbyyear' ? '📅 XC Year by Year' : tab === 'accomplishments' ? '🏆 XC Accomplishments' : '🎓 XC Collegiate Runners';
+            document.getElementById('navHeaderTitle').textContent = tab === 'yearbyyear' ? '📅 XC Year by Year' : tab === 'accomplishments' ? '🏆 XC Accomplishments' : alumniPageTitle();
             const container = document.getElementById('navBody');
             if (tab === 'yearbyyear') {
                 renderYearByYearPage(container);
@@ -3054,9 +3190,14 @@
         // simple non-expanding info row. A stats header and a collapsible
         // "colleges represented" breakdown sit above the list.
         function renderAlumniPage(container) {
-            if (navCache.alumni) { container.innerHTML = navCache.alumni; return; }
+            if (navCache.alumni[genderFilter]) { container.innerHTML = navCache.alumni[genderFilter]; return; }
 
-            const entries = Object.values(COLLEGE_RUNNERS).slice().sort((a, b) => {
+            let rawEntries;
+            if (genderFilter === 'M') rawEntries = Object.values(COLLEGE_RUNNERS);
+            else if (genderFilter === 'F') rawEntries = Object.values(GIRLS_COLLEGE_RUNNERS);
+            else rawEntries = [...Object.values(COLLEGE_RUNNERS), ...Object.values(GIRLS_COLLEGE_RUNNERS)];
+
+            const entries = rawEntries.slice().sort((a, b) => {
                 if (a.hsGradYear !== b.hsGradYear) return a.hsGradYear - b.hsGradYear;
                 return getLastName(a.name).localeCompare(getLastName(b.name));
             });
@@ -3155,7 +3296,7 @@
             // Only cache once roster data has actually loaded — otherwise every
             // card would be stuck in the no-PR-data fallback for the rest of
             // the session.
-            if (Object.keys(athletes).length > 0) navCache.alumni = html;
+            if (Object.keys(athletes).length > 0) navCache.alumni[genderFilter] = html;
             container.innerHTML = html;
         }
 
