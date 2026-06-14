@@ -140,13 +140,23 @@
             color: white; 
             padding: 6px 16px 10px; 
             text-align: center; 
-            border-bottom: 4px solid var(--accent); 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             gap: 0; 
             position: relative; 
         }
+
+        /* Checkerboard accent strip — replaces the old solid yellow line
+           under the header. Built as a small tiled SVG (2x2 squares) so no
+           extra image asset is needed; matches the checkered-uniform look. */
+        .checker-border {
+            height: 16px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%23ffdd00'/%3E%3Crect width='8' height='8' fill='%23000000'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%23000000'/%3E%3C/svg%3E");
+            background-size: 16px 16px;
+            flex-shrink: 0;
+        }
+
         
         .logo-img { max-width: 140px; height: auto; display: block; margin-bottom: -20px; }
         header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff; margin: 0; }
@@ -252,7 +262,8 @@
         .breakdown-row-item { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; font-weight: 600; border-bottom: 1px dashed #e2e8f0; }
         .breakdown-row-item.displacer { color: var(--text-muted); font-weight: 500; }
 
-        .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; }
+        .search-trigger-fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); border: 3px solid var(--accent); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.25); cursor: pointer; z-index: 95; transition: opacity 0.2s ease, transform 0.2s ease; }
+        .search-trigger-fab.fab-hidden { opacity: 0; transform: scale(0.7); pointer-events: none; }
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .drawer-overlay.active { opacity: 1; pointer-events: auto; }
 
@@ -477,7 +488,7 @@
 
         @media print {
             body * { visibility: hidden; }
-            header, .search-trigger-fab, .filter-container, .progression-overlay, .drawer-overlay,
+            header, .checker-border, .search-trigger-fab, .filter-container, .progression-overlay, .drawer-overlay,
             #virtualMeetDashboard, #virtualMeetResultsArea, #careerProgressiveView { display: none !important; }
 
             .container, .container * ,
@@ -526,6 +537,7 @@
         <h1>Perry Boys Distance Times</h1>
         <p>XC & Track Career Leaderboards</p>
     </header>
+    <div class="checker-border"></div>
 
     <!-- ── Year by Year / Accomplishments Overlay ───────────────── -->
     <div class="nav-overlay" id="navOverlay">
@@ -907,6 +919,19 @@
                 overlay.classList.remove('active');
             }
         }
+
+        // Fade the floating search button out while the page is being
+        // scrolled (so it doesn't sit on top of card content), and bring it
+        // back ~600ms after scrolling stops.
+        (function() {
+            const fab = document.getElementById('searchFab');
+            let hideTimer = null;
+            window.addEventListener('scroll', () => {
+                fab.classList.add('fab-hidden');
+                clearTimeout(hideTimer);
+                hideTimer = setTimeout(() => fab.classList.remove('fab-hidden'), 600);
+            }, { passive: true });
+        })();
 
         function openDrawerToAthlete(name) {
             const overlay = document.getElementById('drawerOverlay');
