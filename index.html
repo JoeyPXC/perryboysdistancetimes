@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -402,6 +403,22 @@
         .ybyr-search { width: 100%; padding: 10px 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; font-weight: 600; background: var(--card-bg); color: var(--text); outline: none; margin-bottom: 12px; }
         .ybyr-search:focus { border-color: var(--accent); }
         body.dark-mode .ybyr-search { background: var(--card-bg); color: var(--text); }
+
+        /* Year-by-year: meet-by-meet results */
+        .ybyr-meets-toggle { display:flex; justify-content:space-between; align-items:center; padding:9px 12px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); background:var(--bg); cursor:pointer; user-select:none; border-top:1px solid var(--border); }
+        .ybyr-meets-toggle .ybyr-chevron { fill: var(--text-muted); }
+        .ybyr-meets-toggle.expanded .ybyr-chevron { transform: rotate(180deg); }
+        .ybyr-meets { display:none; background:var(--bg); padding:4px 0 6px; }
+        .ybyr-meets-toggle.expanded + .ybyr-meets { display:block; }
+        .ybyr-meet-block { padding:6px 12px 8px; }
+        .ybyr-meet-name { font-size:11px; font-weight:800; color:var(--text); text-transform:uppercase; letter-spacing:0.3px; padding:4px 0; border-bottom:1px solid var(--border); margin-bottom:2px; }
+        .ybyr-meet-row { display:flex; align-items:center; gap:8px; padding:3px 2px; font-size:12px; border-bottom:1px dashed var(--border); }
+        .ybyr-meet-row:last-child { border-bottom:none; }
+        .ybyr-meet-place { font-weight:800; color:var(--text-muted); width:20px; flex-shrink:0; text-align:right; }
+        .ybyr-meet-athlete { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; color:var(--text); }
+        .ybyr-meet-time { font-weight:800; color:var(--primary); background:var(--accent); padding:1px 6px; border-radius:4px; white-space:nowrap; }
+        body.dark-mode .ybyr-meet-time { color:#000; }
+        .ybyr-no-meets { padding:10px 12px; font-size:11px; color:var(--text-muted); text-align:center; }
 
         @media print {
             body * { visibility: hidden; }
@@ -2777,6 +2794,81 @@
         }
 
 
+        // Build a map of XC season year -> meet-by-meet team results, sourced
+        // from the same all-time history sheet used on athlete profile pages.
+        // Shape: { [year]: { meetOrder: [meetName,...], meets: { [meetName]: [{name, time}, ...] } } }
+        function buildTeamMeetsByYear(xcHistory) {
+            const byYear = {};
+            if (!xcHistory) return byYear;
+
+            Object.values(xcHistory).forEach(athleteData => {
+                const name = athleteData.originalName;
+                const seasons = athleteData.seasons || {};
+                Object.keys(seasons).forEach(year => {
+                    const entries = seasons[year] || [];
+                    if (!entries.length) return;
+                    if (!byYear[year]) byYear[year] = { meetOrder: [], meets: {} };
+                    const yearData = byYear[year];
+
+                    entries.forEach(entry => {
+                        const meet = (entry.meet || '').trim();
+                        const time = (entry.time || '').trim();
+                        if (!meet || !time) return;
+                        if (/^(DNR|DNF|DNS|--?|0(\.0)?)$/i.test(time)) return;
+
+                        if (!yearData.meets[meet]) {
+                            yearData.meets[meet] = [];
+                            yearData.meetOrder.push(meet);
+                        }
+                        yearData.meets[meet].push({ name, time });
+                    });
+                });
+            });
+
+            // Sort each meet's results fastest-to-slowest
+            Object.values(byYear).forEach(yearData => {
+                yearData.meetOrder.forEach(meet => {
+                    yearData.meets[meet].sort((a, b) => cleanTimeToSeconds(a.time) - cleanTimeToSeconds(b.time));
+                });
+            });
+
+            return byYear;
+        }
+
+        // Render the collapsible "Meet Results" block for a single year's
+        // team-wide meet-by-meet history (used on the Year by Year page).
+        function buildMeetResultsHtml(yearMeetData) {
+            if (!yearMeetData || !yearMeetData.meetOrder.length) {
+                return `
+                    <div class="ybyr-meets-toggle" onclick="this.classList.toggle('expanded')">
+                        <span>Meet Results</span>
+                        <svg class="ybyr-chevron" width="16" height="16" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                    </div>
+                    <div class="ybyr-meets"><div class="ybyr-no-meets">No meet results on file for this season.</div></div>`;
+            }
+
+            let meetsHtml = '';
+            yearMeetData.meetOrder.forEach(meet => {
+                meetsHtml += `<div class="ybyr-meet-block"><div class="ybyr-meet-name">${meet}</div>`;
+                yearMeetData.meets[meet].forEach((row, i) => {
+                    meetsHtml += `
+                        <div class="ybyr-meet-row">
+                            <span class="ybyr-meet-place">${i + 1}</span>
+                            <span class="ybyr-meet-athlete">${row.name}</span>
+                            <span class="ybyr-meet-time">${row.time}</span>
+                        </div>`;
+                });
+                meetsHtml += `</div>`;
+            });
+
+            return `
+                <div class="ybyr-meets-toggle" onclick="this.classList.toggle('expanded')">
+                    <span>Meet Results</span>
+                    <svg class="ybyr-chevron" width="16" height="16" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                </div>
+                <div class="ybyr-meets">${meetsHtml}</div>`;
+        }
+
         async function renderYearByYearPage(container) {
             if (navCache.yearbyyear) {
                 container.innerHTML = navCache.yearbyyear;
@@ -2784,10 +2876,12 @@
             }
             container.innerHTML = '<p style="text-align:center;padding:30px;color:var(--text-muted);font-weight:600;">⏳ Loading year by year data…</p>';
             try {
-                const [csvRes, histData] = await Promise.all([
+                const [csvRes, histData, xcHistory] = await Promise.all([
                     fetch(cacheBustUrl(YEAR_BY_YEAR_CSV_URL)),
-                    getHistoryYearStats().catch(() => ({ entries: [], byYear: {} }))
+                    getHistoryYearStats().catch(() => ({ entries: [], byYear: {} })),
+                    getXCHistoryData().catch(() => null)
                 ]);
+                const teamMeetsByYear = buildTeamMeetsByYear(xcHistory);
                 if (!csvRes.ok) throw new Error('Year by Year sheet returned HTTP ' + csvRes.status);
                 const text = await csvRes.text();
                 const rows = parseCSVText(text);
@@ -2883,6 +2977,8 @@
 
                     if (!rowsHtml) return;
 
+                    const meetResultsHtml = buildMeetResultsHtml(teamMeetsByYear[year]);
+
                     html += `
                         <div class="ybyr-year-card" data-year="${year}" data-coach="${coach.toLowerCase()}">
                             <div class="ybyr-year-header" onclick="this.parentElement.classList.toggle('expanded')">
@@ -2892,7 +2988,7 @@
                                     <svg class="ybyr-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                                 </span>
                             </div>
-                            <div class="ybyr-body">${rowsHtml}</div>
+                            <div class="ybyr-body">${rowsHtml}${meetResultsHtml}</div>
                         </div>`;
                 });
 
