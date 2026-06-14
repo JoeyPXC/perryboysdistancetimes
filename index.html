@@ -285,6 +285,13 @@
         .athlete-meta-box { display: flex; flex-direction: column; gap: 2px; }
         .athlete-name { font-size: 15px; font-weight: 800; color: var(--primary); }
         .athlete-grad-text { font-size: 12px; font-weight: 600; color: var(--perry-gray); }
+        .college-badge { font-size: 13px; margin-left: 5px; }
+        .college-section { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: 10px 0; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; }
+        .college-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; flex-shrink: 0; background: white; }
+        .college-info { flex: 1; min-width: 0; }
+        .college-info-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+        .college-info-name { font-size: 13px; font-weight: 800; color: var(--text); }
+        body.dark-mode .college-section { background: var(--card-bg); }
         
         .card-chevron { width: 20px; height: 20px; fill: var(--perry-gray); transition: transform 0.2s ease; }
         .athlete-card.expanded .card-chevron { transform: rotate(180deg); }
@@ -363,26 +370,8 @@
         .nav-header { background: var(--primary); border-bottom: 4px solid var(--accent); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
         .nav-header-title { font-size: 13px; font-weight: 800; color: white; text-transform: uppercase; letter-spacing: 0.5px; }
         .nav-close-btn { background: none; border: 2px solid #555; color: #aaa; border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; font-weight: 700; }
-        .nav-tabs { display: flex; background: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; overflow-x: auto; }
-        .nav-tab { flex: 1; padding: 10px 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; color: rgba(255,255,255,0.5); border: none; background: none; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: all 0.15s; min-width: 0; }
-        .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-        .nav-body { flex: 1; overflow-y: auto; padding: 12px; }
+        .nav-body { flex: 1; overflow-y: auto; padding: 12px; max-width: 600px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 
-        /* Accomplishments page */
-        .accom-section { margin-bottom: 14px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-        .accom-section-header { background: var(--primary); color: var(--accent); padding: 8px 12px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-        .accom-years { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; background: var(--card-bg); }
-        .accom-year-badge { background: var(--accent); color: var(--primary); font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
-        .accom-year-badge.runner-up { background: var(--perry-gray); color: white; }
-        .accom-year-badge.champ { background: #d97706; color: white; }
-        .accom-individual-list { padding: 6px 10px; background: var(--card-bg); }
-        .accom-individual-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
-        .accom-individual-row:last-child { border-bottom: none; }
-        .accom-individual-name { font-weight: 700; color: var(--text); }
-        .accom-individual-years { font-size: 11px; font-weight: 600; color: var(--text-muted); }
-        .accom-star { color: #d97706; font-size: 11px; margin-left: 2px; }
-        body.dark-mode .accom-section { border-color: var(--border); }
-        body.dark-mode .accom-year-badge { background: var(--accent); color: #000; }
 
         /* Year-by-year page */
         .ybyr-year-card { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
@@ -442,7 +431,7 @@
 
     <header>
         <div class="dark-mode-btn" title="Toggle Dark Mode" onclick="toggleDarkMode()" id="darkModeBtn">🌙</div>
-        <div class="hamburger-btn" title="Menu" onclick="openNavMenu()">
+        <div class="hamburger-btn" title="Year by Year History" onclick="openNavMenu()">
             <span></span><span></span><span></span>
         </div>
         <div class="header-sync-btn" title="Force Manual Sync" onclick="fetchLiveGoogleSheets(true)">
@@ -454,22 +443,17 @@
         <p>XC & Track Career Leaderboards</p>
     </header>
 
-    <!-- ── Nav Menu Overlay ───────────────────────────────────────── -->
+    <!-- ── Year by Year Overlay ───────────────────────────────────── -->
     <div class="nav-overlay" id="navOverlay">
         <div class="nav-header">
-            <span class="nav-header-title">☰ PXC Menu</span>
+            <span class="nav-header-title">📅 Year by Year</span>
             <button class="nav-close-btn" onclick="closeNavMenu()">✕ Close</button>
-        </div>
-        <div class="nav-tabs" id="navTabs">
-            <button class="nav-tab active" onclick="switchNavTab('leaderboards', this)">📊 Leaderboards</button>
-            <button class="nav-tab" onclick="switchNavTab('accomplishments', this)">🏆 Accomplishments</button>
-            <button class="nav-tab" onclick="switchNavTab('history', this)">📜 History</button>
-            <button class="nav-tab" onclick="switchNavTab('yearbyyear', this)">📅 Year by Year</button>
         </div>
         <div class="nav-body" id="navBody">
             <!-- content rendered by JS -->
         </div>
     </div>
+
 
     <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawerMode(event)">
         <div class="drawer-content">
@@ -1379,6 +1363,90 @@
             }
         }
 
+        // ── College Runners ──────────────────────────────────────────────
+        // PXC alumni who continued running XC/track in college. Keyed by
+        // lowercase full name as listed on the alumni sheet; "colleges" is an
+        // array since a few athletes transferred between two schools.
+        // Lookup falls back to (last name + HS grad year) to handle name-
+        // format differences between this list and the roster sheet (e.g.
+        // "Ty Griffin" here vs "Tyler Griffin" on the roster).
+        const COLLEGE_RUNNERS = {
+            'john hopple':        { name: 'John Hopple',        hsGradYear: 1986, colleges: ['Malone University'] },
+            'matt hopple':        { name: 'Matt Hopple',        hsGradYear: 1990, colleges: ['Malone University'] },
+            'ed wheeler':         { name: 'Ed Wheeler',         hsGradYear: 1991, colleges: ['Malone University'] },
+            'eric mccaw':         { name: 'Eric McCaw',         hsGradYear: 1993, colleges: ['Grove City College'] },
+            'seth crum':          { name: 'Seth Crum',          hsGradYear: 1994, colleges: ['Harding University'] },
+            'russ hopple':        { name: 'Russ Hopple',        hsGradYear: 1994, colleges: ['West Liberty University'] },
+            'dave braneky':       { name: 'Dave Braneky',       hsGradYear: 1995, colleges: ['Messiah University'] },
+            'luke dostal':        { name: 'Luke Dostal',        hsGradYear: 1996, colleges: ['University of Akron'] },
+            'bob zak':            { name: 'Bob Zak',            hsGradYear: 1996, colleges: ['University of Cincinnati'] },
+            'brad owen':          { name: 'Brad Owen',          hsGradYear: 1997, colleges: ['Malone University'] },
+            'kyle bair':          { name: 'Kyle Bair',          hsGradYear: 1999, colleges: ['University of Mount Union'] },
+            'joey beall':         { name: 'Joey Beall',         hsGradYear: 1999, colleges: ['University of Mount Union'] },
+            'bryan wyatt':        { name: 'Bryan Wyatt',        hsGradYear: 1999, colleges: ['University of Cincinnati'] },
+            'joe soehnlen':       { name: 'Joe Soehnlen',       hsGradYear: 2000, colleges: ['Ashland University'] },
+            'mike zak':           { name: 'Mike Zak',           hsGradYear: 2001, colleges: ['The Ohio State University'] },
+            'cj alguire':         { name: 'CJ Alguire',         hsGradYear: 2001, colleges: ['Walsh University'] },
+            'dan graber':         { name: 'Dan Graber',         hsGradYear: 2002, colleges: ['Heidelberg University'] },
+            'sean mcnair':        { name: 'Sean McNair',        hsGradYear: 2002, colleges: ['Malone University'] },
+            'david adams':        { name: 'David Adams',        hsGradYear: 2003, colleges: ['University of Cincinnati'] },
+            'chad kirkbride':     { name: 'Chad Kirkbride',     hsGradYear: 2003, colleges: ['Heidelberg University'] },
+            'dustin ford':        { name: 'Dustin Ford',        hsGradYear: 2005, colleges: ['University of Mount Union'] },
+            'ty griffin':         { name: 'Ty Griffin',         hsGradYear: 2007, colleges: ['University of Mount Union'] },
+            'j.d. horton':        { name: 'J.D. Horton',        hsGradYear: 2007, colleges: ['University of Kentucky'] },
+            'matt welch':         { name: 'Matt Welch',         hsGradYear: 2008, colleges: ['Walsh University'] },
+            'josh tormasi':       { name: 'Josh Tormasi',       hsGradYear: 2009, colleges: ['Coastal Carolina University', 'Malone University'] },
+            'brandon wollenberg': { name: 'Brandon Wollenberg', hsGradYear: 2009, colleges: ['Walsh University'] },
+            'justin eddy':        { name: 'Justin Eddy',        hsGradYear: 2010, colleges: ['Walsh University'] },
+            'cody sundley':       { name: 'Cody Sundley',       hsGradYear: 2010, colleges: ['University of Mount Union'] },
+            'corey williams':     { name: 'Corey Williams',     hsGradYear: 2010, colleges: ['Case Western Reserve University'] },
+            'brad linerode':      { name: 'Brad Linerode',      hsGradYear: 2011, colleges: ['University of Mount Union'] },
+            'aaron dunn':         { name: 'Aaron Dunn',         hsGradYear: 2012, colleges: ['Walsh University'] },
+            'david kamerer':      { name: 'David Kamerer',      hsGradYear: 2012, colleges: ['Walsh University'] },
+            'seth kurzen':        { name: 'Seth Kurzen',        hsGradYear: 2012, colleges: ['Walsh University'] },
+            'matt mizer':         { name: 'Matt Mizer',         hsGradYear: 2012, colleges: ['Walsh University'] },
+            'dan quinn':          { name: 'Dan Quinn',          hsGradYear: 2012, colleges: ['Walsh University'] },
+            'matt thiessen':      { name: 'Matt Thiessen',      hsGradYear: 2012, colleges: ['Walsh University'] },
+            'mitchell paxton':    { name: 'Mitchell Paxton',    hsGradYear: 2014, colleges: ['Walsh University'] },
+            'joseph volpe':       { name: 'Joseph Volpe',       hsGradYear: 2014, colleges: ['Case Western Reserve University'] },
+            'tristan williams':   { name: 'Tristan Williams',   hsGradYear: 2014, colleges: ['Walsh University', 'University of Akron'] },
+            'alex ryan':          { name: 'Alex Ryan',          hsGradYear: 2015, colleges: ['John Carroll University'] },
+            'jacob meeks':        { name: 'Jacob Meeks',        hsGradYear: 2016, colleges: ['University of Mount Union'] },
+            'jason williams':     { name: 'Jason Williams',     hsGradYear: 2018, colleges: ['Walsh University'] },
+            'kevin echelberry':   { name: 'Kevin Echelberry',   hsGradYear: 2019, colleges: ['Case Western Reserve University'] },
+            'everett ewing':      { name: 'Everett Ewing',      hsGradYear: 2019, colleges: ['Walsh University'] },
+            'john backus':        { name: 'John Backus',        hsGradYear: 2020, colleges: ['Mount Vernon Nazarene University'] },
+            'justin zapotoczny':  { name: 'Justin Zapotoczny',  hsGradYear: 2020, colleges: ['University of Akron'] },
+            'kyle woods':         { name: 'Kyle Woods',         hsGradYear: 2022, colleges: ['Walsh University'] },
+            'alex hill':          { name: 'Alex Hill',          hsGradYear: 2023, colleges: ['Malone University'] },
+            'owen rair':          { name: 'Owen Rair',          hsGradYear: 2023, colleges: ['Mount Vernon Nazarene University'] },
+            'cooper reed':        { name: 'Cooper Reed',        hsGradYear: 2023, colleges: ['University of Mount Union'] },
+            'connor reed':        { name: 'Connor Reed',        hsGradYear: 2024, colleges: ['Grand Valley State University'] },
+            'gabe weiford':       { name: 'Gabe Weiford',       hsGradYear: 2024, colleges: ['Hiram College'] },
+        };
+
+        // School name -> TFRRS team logo image URL (hotlinked — <img> tags
+        // don't require CORS, unlike fetch()). Filled in for the most common
+        // schools; entries with no logo simply don't show one.
+        const COLLEGE_LOGOS = {
+            // populated below
+        };
+
+        function getCollegeInfo(athlete) {
+            const key = (athlete.name || '').toLowerCase().trim();
+            if (COLLEGE_RUNNERS[key]) return COLLEGE_RUNNERS[key];
+            if (!athlete.gradYear) return null;
+            const lastName = getLastName(athlete.name);
+            const grad = String(athlete.gradYear);
+            for (const k in COLLEGE_RUNNERS) {
+                const info = COLLEGE_RUNNERS[k];
+                if (String(info.hsGradYear) === grad && getLastName(info.name) === lastName) {
+                    return info;
+                }
+            }
+            return null;
+        }
+
         function renderRoster() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
             const container = document.getElementById('rosterList');
@@ -1434,17 +1502,41 @@
 
                 let safeId = athlete.name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+                // College info — shows a 🎓 badge in the header (so it's
+                // visible at a glance while browsing) and a school card
+                // (with logo, if we have one) when expanded.
+                let collegeInfo = getCollegeInfo(athlete);
+                let collegeBadgeHtml = collegeInfo
+                    ? `<span class="college-badge" title="Ran in college: ${collegeInfo.colleges.join(' & ')}">🎓</span>`
+                    : '';
+                let collegeSectionHtml = '';
+                if (collegeInfo) {
+                    let logosHtml = collegeInfo.colleges.map(c => {
+                        const logo = COLLEGE_LOGOS[c];
+                        return logo ? `<img src="${logo}" alt="${c}" class="college-logo" onerror="this.remove()">` : '';
+                    }).join('');
+                    collegeSectionHtml = `
+                        <div class="college-section">
+                            ${logosHtml}
+                            <div class="college-info">
+                                <div class="college-info-label">🎓 Ran in College</div>
+                                <div class="college-info-name">${collegeInfo.colleges.join(' & ')}</div>
+                            </div>
+                        </div>`;
+                }
+
                 card.dataset.compareName = athlete.name;
                 card.innerHTML = `
                     <div class="card-toggle-header" data-runner-name="${athlete.name.replace(/"/g, '&quot;')}">
                     <span class="compare-check">✓</span>
                         <div class="athlete-meta-box">
-                            <span class="athlete-name">${athlete.name}</span>
+                            <span class="athlete-name">${athlete.name}${collegeBadgeHtml}</span>
                             <span class="athlete-grad-text">${gradDisplay}</span>
                         </div>
                         <svg class="card-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                     </div>
                     <div class="card-expand-body">
+                        ${collegeSectionHtml}
                         <div class="events-grid">${eventsHtml}</div>
                         
                         <div class="meet-history-section" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px;">
@@ -2389,7 +2481,6 @@
 
 
         // ── URLs for nav pages ───────────────────────────────────────────
-        const ACCOMPLISHMENTS_DOC_URL = 'https://docs.google.com/document/d/e/2PACX-1vQ42RxEHuwZCdBfGsb_iT4LmYcNO8Zhc51yZI7W45vUx04jYx9PLI9FlgaMH8E6hpaaXh51XkyAwN4q/pub';
         const HISTORY_DOC_URL = 'https://docs.google.com/document/d/e/2PACX-1vQt21HnSOUr_eqbjH8s65XM1H0spgK9Ynge2S0rMx6dCZuYxKOYi3Hnog2B6kQRe0NMI-aW6cosE0rm/pub';
         const YEAR_BY_YEAR_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTcu9c_osUnhoRsnKUxeRoHSvyIp9dZ3kp-QEJTmhM2feI2pqz3ZR41i06VoAflKg0Ra1QZhE4_W4Vc/pub?output=csv';
 
@@ -2522,273 +2613,15 @@
             }
         }
 
-        let navCache = { accomplishments: null, history: null, yearbyyear: null };
-        let currentNavTab = 'leaderboards';
+        let navCache = { yearbyyear: null };
 
         function openNavMenu() {
             document.getElementById('navOverlay').classList.add('open');
-            if (currentNavTab !== 'leaderboards') {
-                renderNavTab(currentNavTab);
-            }
+            renderYearByYearPage(document.getElementById('navBody'));
         }
 
         function closeNavMenu() {
             document.getElementById('navOverlay').classList.remove('open');
-        }
-
-        function switchNavTab(tab, btnEl) {
-            currentNavTab = tab;
-            document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-            btnEl.classList.add('active');
-            renderNavTab(tab);
-        }
-
-        function renderNavTab(tab) {
-            const body = document.getElementById('navBody');
-            if (tab === 'leaderboards') {
-                body.innerHTML = `<div style="text-align:center;padding:30px;">
-                    <div style="font-size:40px;margin-bottom:12px;">📊</div>
-                    <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px;">Leaderboards</div>
-                    <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">View career rankings, season bests, and the virtual meet simulator.</div>
-                    <button onclick="closeNavMenu()" style="background:var(--primary);color:var(--accent);border:3px solid var(--accent);border-radius:10px;padding:12px 24px;font-size:14px;font-weight:800;cursor:pointer;text-transform:uppercase;">Go to Leaderboards</button>
-                </div>`;
-                return;
-            }
-            if (tab === 'accomplishments') { renderAccomplishmentsPage(body); return; }
-            if (tab === 'history') { renderHistoryPage(body); return; }
-            if (tab === 'yearbyyear') { renderYearByYearPage(body); return; }
-        }
-
-        // ── ACCOMPLISHMENTS (parsed once, shared with History page badges) ──
-        const ACCOMPLISHMENT_SECTIONS = [
-            { key: 'State Qualifying Teams',    icon: '\ud83c\udf85', badgeClass: 'champ' },
-            { key: 'Regional Qualifying Teams', icon: '\ud83c\udfc3', badgeClass: '' },
-            { key: 'Regional Runner-up',        icon: '\ud83e\udd48', badgeClass: 'runner-up' },
-            { key: 'District Champion',         icon: '\ud83c\udfc6', badgeClass: 'champ' },
-            { key: 'District Runner-up',        icon: '\ud83e\udd48', badgeClass: 'runner-up' },
-            { key: 'Federal League Champion',   icon: '\u2b50', badgeClass: 'champ' },
-            { key: 'Federal League Runner-up',  icon: '\ud83e\udd48', badgeClass: 'runner-up' },
-            { key: 'Stark County Champion',     icon: '\ud83c\udfc6', badgeClass: 'champ' },
-            { key: 'Stark County Runner-up',    icon: '\ud83e\udd48', badgeClass: 'runner-up' },
-        ];
-        const INDIVIDUAL_QUALIFIERS_HEADING = 'Individual State Meet Qualifiers';
-
-        let accomplishmentsDataCache = null;
-        let accomplishmentsDataPromise = null;
-
-        // Fetches + parses the PXC Accomplishments doc once, caching the result.
-        // Returns { sectionYears: { [sectionKey]: ['1988','1993',...] }, individuals: [{name, years:[{year,allOhio}]}] }
-        async function getAccomplishmentsData() {
-            if (accomplishmentsDataCache) return accomplishmentsDataCache;
-            if (accomplishmentsDataPromise) return accomplishmentsDataPromise;
-            accomplishmentsDataPromise = (async () => {
-                const res = await fetch(cacheBustUrl(ACCOMPLISHMENTS_DOC_URL));
-                if (!res.ok) throw new Error('Accomplishments doc returned HTTP ' + res.status);
-                const html = await res.text();
-                const text = extractDocText(html);
-                const data = parseAccomplishmentsText(text);
-                accomplishmentsDataCache = data;
-                return data;
-            })();
-            try {
-                return await accomplishmentsDataPromise;
-            } catch(e) {
-                accomplishmentsDataPromise = null;
-                throw e;
-            }
-        }
-
-        // Line-based parser for the Accomplishments doc.
-        // Team sections list years separated by "*" (sometimes wrapping onto multiple
-        // lines) — "*" here is purely a separator, not an All-Ohio marker.
-        // The Individual State Meet Qualifiers section lists "Name YYYY[*] YYYY[*]..."
-        // where a trailing "*" directly after a year DOES mean All-Ohio.
-        function parseAccomplishmentsText(text) {
-            const lines = text.split('\n').map(l => l.trim());
-            const sectionKeys = ACCOMPLISHMENT_SECTIONS.map(s => s.key);
-            const sectionYears = {};
-            sectionKeys.forEach(k => sectionYears[k] = []);
-            const individuals = [];
-
-            let currentSection = null;
-            let inIndividuals = false;
-
-            for (const line of lines) {
-                if (!line) continue;
-
-                if (inIndividuals) {
-                    const yearMatches = line.match(/\d{4}\*?/g);
-                    const namePart = line.replace(/\d{4}\*?/g, '').trim();
-                    if (namePart && yearMatches) {
-                        individuals.push({
-                            name: namePart,
-                            years: yearMatches.map(y => ({ year: y.replace('*', ''), allOhio: y.includes('*') }))
-                        });
-                    }
-                    continue;
-                }
-
-                if (line.startsWith(INDIVIDUAL_QUALIFIERS_HEADING)) {
-                    inIndividuals = true;
-                    continue;
-                }
-
-                const matchedKey = sectionKeys.find(k => line.startsWith(k));
-                if (matchedKey) {
-                    currentSection = matchedKey;
-                    const remainder = line.substring(matchedKey.length);
-                    const years = remainder.match(/\d{4}/g);
-                    if (years) sectionYears[currentSection].push(...years);
-                    continue;
-                }
-
-                // Continuation line: just more years (and "*" separators) for the
-                // current section, possibly wrapped onto its own line(s).
-                if (currentSection && /^[\d*\s]+$/.test(line)) {
-                    const years = line.match(/\d{4}/g);
-                    if (years) sectionYears[currentSection].push(...years);
-                }
-            }
-
-            return { sectionYears, individuals };
-        }
-
-        // Derives the year-sets used to badge History page year cards.
-        function getHistoryBadgeYearSets(accData) {
-            const stateSet = new Set(accData.sectionYears['State Qualifying Teams'] || []);
-            (accData.individuals || []).forEach(({ years }) => years.forEach(({ year }) => stateSet.add(year)));
-            return {
-                stateSet,
-                fedChampSet: new Set(accData.sectionYears['Federal League Champion'] || []),
-                distChampSet: new Set(accData.sectionYears['District Champion'] || []),
-                countyChampSet: new Set(accData.sectionYears['Stark County Champion'] || []),
-            };
-        }
-
-        async function renderAccomplishmentsPage(container) {
-            if (navCache.accomplishments) {
-                container.innerHTML = navCache.accomplishments;
-                return;
-            }
-            container.innerHTML = '<p style="text-align:center;padding:30px;color:var(--text-muted);font-weight:600;">\u23f3 Loading accomplishments\u2026</p>';
-            try {
-                const data = await getAccomplishmentsData();
-                let html_out = '';
-
-                ACCOMPLISHMENT_SECTIONS.forEach(({ key, icon, badgeClass }) => {
-                    const years = data.sectionYears[key];
-                    if (!years || years.length === 0) return;
-                    const badgeHtml = years.map(yr =>
-                        `<span class="accom-year-badge ${badgeClass}">${yr}</span>`
-                    ).join('');
-                    html_out += `
-                        <div class="accom-section">
-                            <div class="accom-section-header">${icon} ${key}</div>
-                            <div class="accom-years">${badgeHtml}</div>
-                        </div>`;
-                });
-
-                if (data.individuals.length) {
-                    let indivHtml = '';
-                    data.individuals.forEach(({ name, years }) => {
-                        const yearsDisplay = years.map(({ year, allOhio }) =>
-                            allOhio
-                                ? `<span style="background:#d97706;color:white;font-size:11px;font-weight:800;padding:1px 6px;border-radius:4px;white-space:nowrap;">${year} \u2605</span>`
-                                : `<span style="background:var(--primary);color:var(--accent);font-size:11px;font-weight:800;padding:1px 6px;border-radius:4px;white-space:nowrap;">${year}</span>`
-                        ).join(' ');
-                        indivHtml += `
-                            <div class="accom-individual-row">
-                                <span class="accom-individual-name">${name}</span>
-                                <span style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;">${yearsDisplay}</span>
-                            </div>`;
-                    });
-                    html_out += `
-                        <div class="accom-section">
-                            <div class="accom-section-header">\ud83c\udfbd Individual State Qualifiers <span style="font-size:10px;font-weight:600;opacity:0.8;">(\u2605 = All-Ohio)</span></div>
-                            <div class="accom-individual-list">${indivHtml}</div>
-                        </div>`;
-                }
-
-                navCache.accomplishments = html_out;
-                container.innerHTML = html_out;
-            } catch(e) {
-                renderLoadError(container, 'accomplishments', e);
-            }
-        }
-
-        // ── HISTORY DOC ──────────────────────────────────────────────────
-        // Renders one card per year (most recent first) with structured rows
-        // pulled from extractYearStats(): Dual/Invitational Record, Stark
-        // County, Federal League, District, Regional, State, Individual State
-        // Qualifier(s), and All-Federal/All-County honors. Badges (STATE, FED
-        // CHAMP, DIST CHAMP, COUNTY CHAMP) are cross-referenced from the
-        // Accomplishments doc. Reuses the same .ybyr-year-card markup/search
-        // as the Year by Year page.
-        async function renderHistoryPage(container) {
-            if (navCache.history) {
-                container.innerHTML = navCache.history;
-                return;
-            }
-            container.innerHTML = '<p style="text-align:center;padding:30px;color:var(--text-muted);font-weight:600;">\u23f3 Loading history\u2026</p>';
-            try {
-                const [accData, histData] = await Promise.all([
-                    getAccomplishmentsData().catch(() => ({ sectionYears: {}, individuals: [] })),
-                    getHistoryYearStats()
-                ]);
-
-                const badgeSets = getHistoryBadgeYearSets(accData);
-
-                let html = `<input type="text" class="ybyr-search" id="historySearch" placeholder="Search year, coach, or runner\u2026" oninput="filterYearCards(this.value)">`;
-
-                histData.entries.forEach(({ year, coach, stats }) => {
-                    let badges = '';
-                    if (badgeSets.stateSet.has(year)) badges += '<span style="background:#d97706;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">STATE</span>';
-                    if (badgeSets.fedChampSet.has(year)) badges += '<span style="background:var(--accent);color:var(--primary);font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">FED CHAMP</span>';
-                    if (badgeSets.distChampSet.has(year)) badges += '<span style="background:#166534;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">DIST CHAMP</span>';
-                    if (badgeSets.countyChampSet.has(year)) badges += '<span style="background:#1d4ed8;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">COUNTY CHAMP</span>';
-
-                    let rowsHtml = '';
-                    const addRow = (label, value, highlight) => {
-                        if (!value) return;
-                        rowsHtml += `
-                            <div class="ybyr-row">
-                                <span class="ybyr-row-label">${label}</span>
-                                <span class="ybyr-row-value ${highlight ? 'ybyr-highlight' : ''}">${value}</span>
-                            </div>`;
-                    };
-
-                    if (stats.record) addRow(stats.recordLabel, stats.record);
-                    addRow('Stark County', stats.starkCounty, /^1st/i.test(stats.starkCounty || ''));
-                    addRow('Federal League', stats.federalLeague, /^1st/i.test(stats.federalLeague || ''));
-                    addRow('District', stats.district, /^1st/i.test(stats.district || ''));
-                    addRow('Regional', stats.regional, /^1st/i.test(stats.regional || ''));
-                    addRow('State', stats.state, true);
-                    addRow('Individual State Qualifier(s)', stats.individualState, true);
-                    addRow('All-Federal League', stats.allFederal);
-                    addRow('All-Stark County', stats.allCounty);
-
-                    if (!rowsHtml) {
-                        rowsHtml = '<div class="ybyr-row"><span class="ybyr-row-label" style="font-style:italic;">No detailed results found for this year.</span></div>';
-                    }
-
-                    html += `
-                        <div class="ybyr-year-card" data-year="${year}" data-coach="${coach.toLowerCase()}">
-                            <div class="ybyr-year-header" onclick="this.parentElement.classList.toggle('expanded')">
-                                <span class="ybyr-year-label">${year}${badges}</span>
-                                <span style="display:flex;align-items:center;gap:6px;">
-                                    <span class="ybyr-year-meta">${coach}</span>
-                                    <svg class="ybyr-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
-                                </span>
-                            </div>
-                            <div class="ybyr-body">${rowsHtml}</div>
-                        </div>`;
-                });
-
-                navCache.history = html;
-                container.innerHTML = html;
-            } catch(e) {
-                renderLoadError(container, 'history', e);
-            }
         }
 
         // ── YEAR BY YEAR ─────────────────────────────────────────────────
