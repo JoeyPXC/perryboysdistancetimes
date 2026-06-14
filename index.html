@@ -263,8 +263,8 @@
         .progression-year { font-size: 11px; font-weight: 800; color: var(--text-muted); width: 44px; flex-shrink: 0; }
         .progression-info { flex: 1; }
         .progression-name { font-size: 14px; font-weight: 800; color: var(--text); }
-        .progression-tag { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); margin-top: 2px; }
-        .progression-time { font-size: 16px; font-weight: 900; color: var(--accent); white-space: nowrap; }
+        .progression-tag { display: inline-block; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--primary); background: var(--accent); padding: 1px 6px; border-radius: 4px; margin-top: 2px; }
+        .progression-time { font-size: 16px; font-weight: 900; color: var(--text); white-space: nowrap; }
         .progression-item.current .progression-time { color: var(--primary); background: var(--accent); padding: 2px 8px; border-radius: 6px; }
         .record-banner { cursor: pointer; transition: transform 0.15s ease; }
         .record-banner:active { transform: scale(0.98); }
@@ -402,16 +402,6 @@
         .ybyr-search:focus { border-color: var(--accent); }
         body.dark-mode .ybyr-search { background: var(--card-bg); color: var(--text); }
 
-        /* History doc page */
-        .history-doc-content { font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .history-year-block { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
-        .history-year-header { background: var(--primary); color: var(--accent); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-        .history-year-title { font-size: 14px; font-weight: 800; }
-        .history-year-body { display: none; padding: 12px; background: var(--card-bg); font-size: 12px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
-        .history-year-block.expanded .history-year-body { display: block; }
-        .history-year-block.expanded .ybyr-chevron { transform: rotate(180deg); }
-        .history-search { width: 100%; padding: 10px 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 14px; font-weight: 600; background: var(--card-bg); color: var(--text); outline: none; margin-bottom: 12px; }
-        .history-search:focus { border-color: var(--accent); }
         @media print {
             body * { visibility: hidden; }
             header, .search-trigger-fab, .filter-container, .progression-overlay, .drawer-overlay,
@@ -2410,6 +2400,128 @@
             return url + sep + 'cachebust=' + Math.floor(Date.now() / 300000);
         }
 
+        // Parses a Google Docs published HTML page into plain text.
+        // IMPORTANT: a document produced by DOMParser is never attached to the
+        // live DOM, so `innerText` (which depends on layout) is unreliable and
+        // often falls back to `textContent` — which includes the raw CSS/JS
+        // source inside <style>/<script> tags. Strip those first so neither
+        // path returns that "gibberish".
+        function extractDocText(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            doc.querySelectorAll('script, style, noscript, head').forEach(el => el.remove());
+            const text = doc.body.innerText || doc.body.textContent || '';
+            return text.replace(/\r\n?/g, '\n');
+        }
+
+        // Shows a load-failure message that includes the real error, so issues
+        // (CORS, network, parsing) can be diagnosed from what's on screen.
+        function renderLoadError(container, label, e) {
+            const msg = (e && e.message) ? e.message : String(e);
+            container.innerHTML = `<p style="text-align:center;padding:20px;color:#991b1b;font-weight:600;">Could not load ${label}.<br><span style="font-size:11px;font-weight:400;opacity:0.8;">${msg.replace(/</g,'&lt;')}</span></p>`;
+        }
+
+        // Pulls out the structured per-year stats from a History doc year-block:
+        // dual/invitational record, Stark County / Federal League / District /
+        // Regional / State results, individual state qualifier(s), and
+        // All-Federal / All-County honors. All fields are optional — a year
+        // simply omits whatever line wasn't found.
+        function extractYearStats(blockText) {
+            const stats = {};
+
+            let m = blockText.match(/^\s*Dual Meet Record:?\s*([^\n]+)/im);
+            if (m) { stats.record = m[1].trim(); stats.recordLabel = 'Dual Meet Record'; }
+            else {
+                m = blockText.match(/^\s*Invitational(?:\s+Meet)?\s*Record\s*[-–:]?\s*([^\n]+)/im);
+                if (m) { stats.record = m[1].trim(); stats.recordLabel = 'Invitational Record'; }
+            }
+
+            m = blockText.match(/^\s*Stark County:\s*([^\n]+)/im);
+            if (m) stats.starkCounty = m[1].trim();
+
+            m = blockText.match(/^\s*Federal League(?:\s+Meet)?:\s*([^\n]+)/im);
+            if (m) stats.federalLeague = m[1].trim();
+
+            m = blockText.match(/^\s*Districts?(?:\s+Meet)?:\s*([^\n]+)/im);
+            if (!m) m = blockText.match(/^\s*Sect\/Dist:?\s*([^\n]+)/im);
+            if (m) stats.district = m[1].trim();
+
+            m = blockText.match(/^\s*Regionals?\b[^:\n]*:\s*([^\n]+)/im);
+            if (m) stats.regional = m[1].trim();
+
+            m = blockText.match(/^\s*State(?:\s+Meet)?\b[^:\n]*:\s*([^\n]+)/im);
+            if (m) stats.state = m[1].trim();
+
+            m = blockText.match(/^\s*Individual State (?:Meet )?Qualifiers?[\s\-:]*([^\n]*)/im);
+            if (m) {
+                const v = m[1].trim();
+                if (v && !/^none$/i.test(v)) stats.individualState = v;
+            }
+
+            m = blockText.match(/^\s*All[\s-]?Federal(?:\s+League)?(?:\s+Team)?:\s*([^\n]+)/im);
+            if (m) stats.allFederal = m[1].trim();
+
+            m = blockText.match(/^\s*All[\s-]?(?:Stark )?County(?:\s+Team)?:\s*([^\n]+)/im);
+            if (m) stats.allCounty = m[1].trim();
+
+            return stats;
+        }
+
+        let historyStatsCache = null;
+        let historyStatsPromise = null;
+
+        // Fetches + parses the XC History doc once, splitting it into one
+        // entry per year (sorted most-recent-first) with structured stats from
+        // extractYearStats(). Shared by the History page and the Year by Year
+        // page (for Dual/Invitational Record + State placement).
+        async function getHistoryYearStats() {
+            if (historyStatsCache) return historyStatsCache;
+            if (historyStatsPromise) return historyStatsPromise;
+            historyStatsPromise = (async () => {
+                const res = await fetch(cacheBustUrl(HISTORY_DOC_URL));
+                if (!res.ok) throw new Error('History doc returned HTTP ' + res.status);
+                const html = await res.text();
+                const text = extractDocText(html);
+
+                // Split into year blocks — each begins with a 4-digit year
+                // followed somewhere on that line by "Coach" (e.g. "1988 Coach
+                // Jeff Greenfelder").
+                const blocks = text.split(/(?=\n{0,2}(?:19|20)\d{2}[^\n]*Coach)/);
+
+                const entries = [];
+                blocks.forEach(block => {
+                    block = block.trim();
+                    if (!block) return;
+                    const yearMatch = block.match(/^((?:19|20)\d{2})/);
+                    if (!yearMatch) return;
+                    const year = yearMatch[1];
+
+                    // Coach name — strip trailing "(...)" notes and "- Assistant Coach ..." parts
+                    const coachMatch = block.match(/Coach\s+([^\n(]+)/);
+                    let coach = coachMatch ? coachMatch[1].trim() : '';
+                    coach = coach.replace(/\s*[-,]\s*(Assistant|Volunteer).*$/i, '').trim();
+
+                    entries.push({ year, coach, stats: extractYearStats(block) });
+                });
+
+                // Sort most-recent-first regardless of source document order.
+                entries.sort((a, b) => parseInt(b.year) - parseInt(a.year));
+
+                const byYear = {};
+                entries.forEach(e => { byYear[e.year] = e; });
+
+                const data = { entries, byYear };
+                historyStatsCache = data;
+                return data;
+            })();
+            try {
+                return await historyStatsPromise;
+            } catch(e) {
+                historyStatsPromise = null;
+                throw e;
+            }
+        }
+
         let navCache = { accomplishments: null, history: null, yearbyyear: null };
         let currentNavTab = 'leaderboards';
 
@@ -2471,10 +2583,9 @@
             if (accomplishmentsDataPromise) return accomplishmentsDataPromise;
             accomplishmentsDataPromise = (async () => {
                 const res = await fetch(cacheBustUrl(ACCOMPLISHMENTS_DOC_URL));
+                if (!res.ok) throw new Error('Accomplishments doc returned HTTP ' + res.status);
                 const html = await res.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const text = doc.body.innerText || doc.body.textContent || '';
+                const text = extractDocText(html);
                 const data = parseAccomplishmentsText(text);
                 accomplishmentsDataCache = data;
                 return data;
@@ -2601,11 +2712,18 @@
                 navCache.accomplishments = html_out;
                 container.innerHTML = html_out;
             } catch(e) {
-                container.innerHTML = '<p style="text-align:center;padding:20px;color:#991b1b;font-weight:600;">Could not load accomplishments. Check connection.</p>';
+                renderLoadError(container, 'accomplishments', e);
             }
         }
 
         // ── HISTORY DOC ──────────────────────────────────────────────────
+        // Renders one card per year (most recent first) with structured rows
+        // pulled from extractYearStats(): Dual/Invitational Record, Stark
+        // County, Federal League, District, Regional, State, Individual State
+        // Qualifier(s), and All-Federal/All-County honors. Badges (STATE, FED
+        // CHAMP, DIST CHAMP, COUNTY CHAMP) are cross-referenced from the
+        // Accomplishments doc. Reuses the same .ybyr-year-card markup/search
+        // as the Year by Year page.
         async function renderHistoryPage(container) {
             if (navCache.history) {
                 container.innerHTML = navCache.history;
@@ -2613,75 +2731,73 @@
             }
             container.innerHTML = '<p style="text-align:center;padding:30px;color:var(--text-muted);font-weight:600;">\u23f3 Loading history\u2026</p>';
             try {
-                const [accData, historyRes] = await Promise.all([
+                const [accData, histData] = await Promise.all([
                     getAccomplishmentsData().catch(() => ({ sectionYears: {}, individuals: [] })),
-                    fetch(cacheBustUrl(HISTORY_DOC_URL))
+                    getHistoryYearStats()
                 ]);
-                const html = await historyRes.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const text = doc.body.innerText || doc.body.textContent || '';
 
                 const badgeSets = getHistoryBadgeYearSets(accData);
 
-                // Split into year blocks — each begins with a 4-digit year followed
-                // somewhere on that line by "Coach" (e.g. "1988 Coach Jeff Greenfelder").
-                const blocks = text.split(/(?=\n{0,2}(?:19|20)\d{2}[^\n]*Coach)/);
+                let html = `<input type="text" class="ybyr-search" id="historySearch" placeholder="Search year, coach, or runner\u2026" oninput="filterYearCards(this.value)">`;
 
-                let searchHtml = `<input type="text" class="history-search" id="historySearch" placeholder="Search year, coach, or runner\u2026" oninput="filterHistoryBlocks(this.value)">`;
-                let blocksHtml = '';
-
-                blocks.forEach(block => {
-                    block = block.trim();
-                    if (!block) return;
-                    const yearMatch = block.match(/^((?:19|20)\d{2})/);
-                    if (!yearMatch) return;
-                    const year = yearMatch[1];
-
-                    // Coach name — strip trailing "(...)" notes and "- Assistant Coach ..." parts
-                    const coachMatch = block.match(/Coach\s+([^\n(]+)/);
-                    let coach = coachMatch ? coachMatch[1].trim() : '';
-                    coach = coach.replace(/\s*[-,]\s*(Assistant|Volunteer).*$/i, '').trim();
-
+                histData.entries.forEach(({ year, coach, stats }) => {
                     let badges = '';
                     if (badgeSets.stateSet.has(year)) badges += '<span style="background:#d97706;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">STATE</span>';
                     if (badgeSets.fedChampSet.has(year)) badges += '<span style="background:var(--accent);color:var(--primary);font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">FED CHAMP</span>';
                     if (badgeSets.distChampSet.has(year)) badges += '<span style="background:#166534;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">DIST CHAMP</span>';
                     if (badgeSets.countyChampSet.has(year)) badges += '<span style="background:#1d4ed8;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">COUNTY CHAMP</span>';
 
-                    blocksHtml += `
-                        <div class="history-year-block" data-year="${year}">
-                            <div class="history-year-header" onclick="this.parentElement.classList.toggle('expanded')">
-                                <span class="history-year-title">${year}${badges}</span>
+                    let rowsHtml = '';
+                    const addRow = (label, value, highlight) => {
+                        if (!value) return;
+                        rowsHtml += `
+                            <div class="ybyr-row">
+                                <span class="ybyr-row-label">${label}</span>
+                                <span class="ybyr-row-value ${highlight ? 'ybyr-highlight' : ''}">${value}</span>
+                            </div>`;
+                    };
+
+                    if (stats.record) addRow(stats.recordLabel, stats.record);
+                    addRow('Stark County', stats.starkCounty, /^1st/i.test(stats.starkCounty || ''));
+                    addRow('Federal League', stats.federalLeague, /^1st/i.test(stats.federalLeague || ''));
+                    addRow('District', stats.district, /^1st/i.test(stats.district || ''));
+                    addRow('Regional', stats.regional, /^1st/i.test(stats.regional || ''));
+                    addRow('State', stats.state, true);
+                    addRow('Individual State Qualifier(s)', stats.individualState, true);
+                    addRow('All-Federal League', stats.allFederal);
+                    addRow('All-Stark County', stats.allCounty);
+
+                    if (!rowsHtml) {
+                        rowsHtml = '<div class="ybyr-row"><span class="ybyr-row-label" style="font-style:italic;">No detailed results found for this year.</span></div>';
+                    }
+
+                    html += `
+                        <div class="ybyr-year-card" data-year="${year}" data-coach="${coach.toLowerCase()}">
+                            <div class="ybyr-year-header" onclick="this.parentElement.classList.toggle('expanded')">
+                                <span class="ybyr-year-label">${year}${badges}</span>
                                 <span style="display:flex;align-items:center;gap:6px;">
-                                    <span style="font-size:10px;font-weight:600;color:rgba(255,221,0,0.7);">${coach}</span>
+                                    <span class="ybyr-year-meta">${coach}</span>
                                     <svg class="ybyr-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
                                 </span>
                             </div>
-                            <div class="history-year-body">${block.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                            <div class="ybyr-body">${rowsHtml}</div>
                         </div>`;
                 });
 
-                const fullHtml = searchHtml + blocksHtml;
-                navCache.history = fullHtml;
-                container.innerHTML = fullHtml;
+                navCache.history = html;
+                container.innerHTML = html;
             } catch(e) {
-                container.innerHTML = '<p style="text-align:center;padding:20px;color:#991b1b;font-weight:600;">Could not load history. Check connection.</p>';
+                renderLoadError(container, 'history', e);
             }
         }
 
-        function filterHistoryBlocks(query) {
-            const q = query.toLowerCase().trim();
-            document.querySelectorAll('.history-year-block').forEach(block => {
-                const year = block.dataset.year || '';
-                const text = (block.querySelector('.history-year-body') || {}).textContent || '';
-                const match = !q || year.includes(q) || text.toLowerCase().includes(q);
-                block.style.display = match ? '' : 'none';
-                if (q && q.length > 1 && match) block.classList.add('expanded');
-            });
-        }
-
         // ── YEAR BY YEAR ─────────────────────────────────────────────────
+        // CSV-driven as before, but now also fetches the History doc stats so
+        // each card can show: (1) the Dual/Invitational Record for that
+        // season — covering the ~1970-1994 dual-meet era the spreadsheet
+        // doesn't track — and (2) a more specific State result (e.g. "7th out
+        // of 16" or "Individual Finisher: 41 Mike Zak 16:19") in place of a
+        // generic "Qualified to State" when the History doc has it.
         async function renderYearByYearPage(container) {
             if (navCache.yearbyyear) {
                 container.innerHTML = navCache.yearbyyear;
@@ -2689,10 +2805,14 @@
             }
             container.innerHTML = '<p style="text-align:center;padding:30px;color:var(--text-muted);font-weight:600;">⏳ Loading year by year data…</p>';
             try {
-                const res = await fetch(cacheBustUrl(YEAR_BY_YEAR_CSV_URL));
-                const text = await res.text();
+                const [csvRes, histData] = await Promise.all([
+                    fetch(cacheBustUrl(YEAR_BY_YEAR_CSV_URL)),
+                    getHistoryYearStats().catch(() => ({ entries: [], byYear: {} }))
+                ]);
+                if (!csvRes.ok) throw new Error('Year by Year sheet returned HTTP ' + csvRes.status);
+                const text = await csvRes.text();
                 const rows = parseCSVText(text);
-                if (rows.length < 2) throw new Error('no data');
+                if (rows.length < 2) throw new Error('Year by Year sheet returned no data');
 
                 const headers = rows[0].map(h => h.trim());
                 
@@ -2700,7 +2820,6 @@
                 const col = (name) => headers.findIndex(h => h.toLowerCase().includes(name.toLowerCase()));
                 const yearCol = col('year') !== -1 ? col('year') : 0;
                 const coachCol = col('coach');
-                const recordCol = col('record') !== -1 ? col('record') : col('dual');
                 const starkCol = col('stark');
                 const fedCol = col('federal') !== -1 ? col('federal') : col('fed');
                 const distCol = col('district') !== -1 ? col('district') : col('dist');
@@ -2712,43 +2831,47 @@
                 // Sort descending
                 dataRows.sort((a, b) => parseInt(b[yearCol]) - parseInt(a[yearCol]));
 
-                const fieldDef = [
-                    { label: 'Coach', col: coachCol },
-                    { label: 'Record', col: recordCol },
-                    { label: 'Stark County', col: starkCol },
-                    { label: 'Federal League', col: fedCol },
-                    { label: 'District', col: distCol },
-                    { label: 'Regional', col: regCol },
-                    { label: 'State', col: stateCol },
-                    { label: 'Notes / Honors', col: notesCol },
-                ].filter(f => f.col !== -1 && f.col !== undefined);
-
                 let html = `<input type="text" class="ybyr-search" id="ybyrSearch" placeholder="Search year, coach, or result…" oninput="filterYearCards(this.value)">`;
 
                 dataRows.forEach(row => {
                     const year = row[yearCol].trim();
                     const coach = coachCol !== -1 ? (row[coachCol] || '').trim() : '';
-                    const state = stateCol !== -1 ? (row[stateCol] || '').trim() : '';
+                    const csvState = stateCol !== -1 ? (row[stateCol] || '').trim() : '';
                     const dist = distCol !== -1 ? (row[distCol] || '').trim() : '';
                     const fed = fedCol !== -1 ? (row[fedCol] || '').trim() : '';
+                    const hist = histData.byYear[year];
+                    const histStats = hist ? hist.stats : {};
+
+                    // State result — prefer the more specific placement pulled
+                    // from the History doc (e.g. "7th out of 16") over the
+                    // sheet's value (often just "Qualified to State").
+                    const stateVal = histStats.state || csvState;
 
                     // Achievement badges for header
                     let badges = '';
-                    if (/state/i.test(state) && !/did not|no team|DNQ/i.test(state)) badges += '<span style="background:#d97706;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">STATE</span>';
+                    if (stateVal && !/did not|no team|dnq|^none$/i.test(stateVal)) badges += '<span style="background:#d97706;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">STATE</span>';
                     if (/^1st|champion|1st place/i.test(fed)) badges += '<span style="background:var(--accent);color:var(--primary);font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">FED CHAMP</span>';
                     if (/^1st|champion|1st place/i.test(dist)) badges += '<span style="background:#166534;color:white;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;">DIST CHAMP</span>';
 
                     let rowsHtml = '';
-                    fieldDef.forEach(({ label, col: c }) => {
-                        const val = (row[c] || '').trim();
-                        if (!val || val === '--' || val === '0') return;
-                        const isHighlight = /1st|champion|state/i.test(val);
+                    const addRow = (label, value, highlight) => {
+                        if (!value || value === '--' || value === '0') return;
                         rowsHtml += `
-                            <div class="ybyr-row" data-search="${val.toLowerCase()}">
+                            <div class="ybyr-row">
                                 <span class="ybyr-row-label">${label}</span>
-                                <span class="ybyr-row-value ${isHighlight ? 'ybyr-highlight' : ''}">${val}</span>
+                                <span class="ybyr-row-value ${highlight ? 'ybyr-highlight' : ''}">${value}</span>
                             </div>`;
-                    });
+                    };
+
+                    addRow('Coach', coach);
+                    // Dual/Invitational Record from the History doc (1970-94 dual era, etc.)
+                    if (histStats.record) addRow(histStats.recordLabel, histStats.record);
+                    if (starkCol !== -1) addRow('Stark County', (row[starkCol] || '').trim());
+                    if (fedCol !== -1) addRow('Federal League', fed, /^1st/i.test(fed));
+                    if (distCol !== -1) addRow('District', dist, /^1st/i.test(dist));
+                    if (regCol !== -1) addRow('Regional', (row[regCol] || '').trim());
+                    addRow('State', stateVal, true);
+                    if (notesCol !== -1) addRow('Notes / Honors', (row[notesCol] || '').trim());
 
                     if (!rowsHtml) return;
 
@@ -2768,7 +2891,7 @@
                 navCache.yearbyyear = html;
                 container.innerHTML = html;
             } catch(e) {
-                container.innerHTML = '<p style="text-align:center;padding:20px;color:#991b1b;font-weight:600;">Could not load year by year data. Check connection.</p>';
+                renderLoadError(container, 'year by year data', e);
             }
         }
 
