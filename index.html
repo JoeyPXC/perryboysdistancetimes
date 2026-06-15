@@ -446,6 +446,8 @@
         .nav-tab { flex:1; padding:9px 8px; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.3px; border:none; background:none; color:var(--text-muted); cursor:pointer; border-bottom:3px solid transparent; transition:all 0.15s; }
         .nav-tab.active { color:var(--text); border-bottom-color:var(--accent); }
         .accomp-section { margin-bottom:18px; }
+        .accomp-gender-divider { font-size:14px; font-weight:900; text-transform:uppercase; letter-spacing:1.5px; color:var(--text); padding:4px 2px 10px; margin-bottom:10px; border-bottom:3px solid var(--accent); }
+        .accomp-gender-divider:not(:first-child) { margin-top:22px; }
         .accomp-section-title { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:white; padding:6px 12px; border-radius:6px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
         .accomp-years { display:flex; flex-wrap:wrap; gap:5px; padding:0 2px; }
         .accomp-year-chip { font-size:12px; font-weight:800; padding:4px 10px; border-radius:6px; }
@@ -560,7 +562,7 @@
     <!-- ── Year by Year / Accomplishments Overlay ───────────────── -->
     <div class="nav-overlay" id="navOverlay">
         <div class="nav-header">
-            <span class="nav-header-title" id="navHeaderTitle">🏆 XC Accomplishments</span>
+            <span class="nav-header-title" id="navHeaderTitle">🏆 Boys XC Accomplishments</span>
             <button class="nav-close-btn" onclick="closeNavMenu()">✕ Close</button>
         </div>
         <div style="display:flex;border-bottom:2px solid var(--border);background:var(--bg);">
@@ -994,6 +996,9 @@
             if (navCurrentTab === 'alumni') {
                 document.getElementById('navHeaderTitle').textContent = alumniPageTitle();
                 renderAlumniPage(document.getElementById('navBody'));
+            } else if (navCurrentTab === 'accomplishments') {
+                document.getElementById('navHeaderTitle').textContent = accomplishmentsPageTitle();
+                renderAccomplishmentsPage(document.getElementById('navBody'));
             }
             try { localStorage.setItem('perry_gender_filter', g); } catch(e) {}
         }
@@ -1124,7 +1129,7 @@
                 '2005': ['Dustin Ford', 'JD Horton']
             },
             '1600m': {
-                '2007': ['Ty Griffin', 'Josh Tormasi']
+                '2007': ['Tyler Griffin', 'Josh Tormasi']
             }
             // Add more as needed, e.g. 'XC 5K': { '2019': ['Name A', 'Name B'] }
         };
@@ -1656,6 +1661,38 @@
             { name: 'Justus Detter',      years: [2024],           starred: [] },
         ];
 
+        // ── Program Accomplishments Data — GIRLS ──────────────────────────
+        // Same shape as the boys arrays above, from the "Perry Girls Cross
+        // Country 1979-Present" accomplishments sheet. Categories with no
+        // recorded results (Regional/Federal/Stark Runner-up) are left empty
+        // — section() below skips an empty runner-up subsection cleanly.
+        const girlsStateTeams    = [1995,1996,2017];
+        const girlsRegQual       = [1988,1994,1995,1996,1998,2000,2001,2002,2004,2005,2007,2008,2010,2011,2013,2014,2015,2016,2017,2023,2024,2025];
+        const girlsRegRunnerup   = [];
+        const girlsDistChamp     = [1996,2017];
+        const girlsDistRunnerup  = [1994,1995,2014,2016];
+        const girlsFedChamp      = [1995,1996,2017];
+        const girlsFedRunnerup   = [];
+        const girlsStarkChamp    = [1996];
+        const girlsStarkRunnerup = [];
+
+        // Individual State Meet Qualifiers — girls. No All-Ohio ("starred")
+        // years were noted on the source sheet.
+        const girlsIndState = [
+            { name: 'Leslie Schoppelrey', years: [1987,1988,1989],      starred: [] },
+            { name: 'Michelle Riegler',   years: [1989,1990],           starred: [] },
+            { name: 'Gigi Hopple',        years: [1994,1995,1996],      starred: [] },
+            { name: 'Tiffany Smith',      years: [1994,1995,1996,1997], starred: [] },
+            { name: 'Dara Ford',          years: [2000],                starred: [] },
+            { name: 'Sherri Douglas',     years: [2002],                starred: [] },
+            { name: 'Kristen Emhoff',     years: [2002,2004],           starred: [] },
+            { name: 'Jackie Genetin',     years: [2009],                starred: [] },
+            { name: 'Stacy Cameron',      years: [2010],                starred: [] },
+            { name: 'Madelyn Bartolone',  years: [2016,2017],           starred: [] },
+            { name: 'Hannah Groff',       years: [2019],                starred: [] },
+            { name: 'Chloe Dostal',       years: [2021,2023,2024],      starred: [] },
+        ];
+
         // ── College Runners ──────────────────────────────────────────────
         // PXC alumni who continued running XC/track in college. Keyed by
         // lowercase full name as listed on the alumni sheet; "colleges" is an
@@ -1738,7 +1775,7 @@
             'alex hamit':         { name: 'Alex Hamit',         hsGradYear: 2012, colleges: ['University of Mount Union'] },
             'jackie genetin':     { name: 'Jackie Genetin',     hsGradYear: 2013, colleges: ['Ashland University'] },
             'kylie church':       { name: 'Kylie Church',       hsGradYear: 2014, colleges: ['Notre Dame College'] },
-            'sydney fenn':        { name: 'Sydney Fenn',        hsGradYear: 2015, colleges: ['Walsh University'] },
+            'sydnee fenn':        { name: 'Sydnee Fenn',        hsGradYear: 2015, colleges: ['Walsh University'] },
             'lexi echelberry':    { name: 'Lexi Echelberry',    hsGradYear: 2017, colleges: ['Indiana Wesleyan University'] },
             'madelyn bartolone':  { name: 'Madelyn Bartolone',  hsGradYear: 2018, colleges: ['Ohio University'] },
             'katie williams':     { name: 'Katie Williams',     hsGradYear: 2019, colleges: ['Cuyahoga Community College'] },
@@ -3018,7 +3055,7 @@
             }
         }
 
-        let navCache = { yearbyyear: null, alumni: { M: null, F: null, ALL: null } };
+        let navCache = { yearbyyear: null, alumni: { M: null, F: null, ALL: null }, accomplishments: { M: null, F: null, ALL: null } };
 
         // Delegated click handler for expandable cards rendered inside the
         // nav drawer (currently just the Collegiate Runners list). Attached
@@ -3037,7 +3074,7 @@
             document.getElementById('navTabAccomp').classList.add('active');
             document.getElementById('navTabAlumni').classList.remove('active');
             document.getElementById('navTabYBY').classList.remove('active');
-            document.getElementById('navHeaderTitle').textContent = '🏆 XC Accomplishments';
+            document.getElementById('navHeaderTitle').textContent = accomplishmentsPageTitle();
             renderAccomplishmentsPage(document.getElementById('navBody'));
         }
 
@@ -3055,6 +3092,13 @@
 
         let navCurrentTab = 'yearbyyear';
 
+        // Accomplishments tab title reflects the current Boys/Girls/All toggle.
+        function accomplishmentsPageTitle() {
+            if (genderFilter === 'F') return '🏆 Girls XC Accomplishments';
+            if (genderFilter === 'M') return '🏆 Boys XC Accomplishments';
+            return '🏆 XC Accomplishments';
+        }
+
         // Collegiate tab title reflects the current Boys/Girls/All toggle.
         function alumniPageTitle() {
             if (genderFilter === 'F') return '🎓 Girls Collegiate Runners';
@@ -3067,7 +3111,7 @@
             document.getElementById('navTabYBY').classList.toggle('active', tab === 'yearbyyear');
             document.getElementById('navTabAccomp').classList.toggle('active', tab === 'accomplishments');
             document.getElementById('navTabAlumni').classList.toggle('active', tab === 'alumni');
-            document.getElementById('navHeaderTitle').textContent = tab === 'yearbyyear' ? '📅 XC Year by Year' : tab === 'accomplishments' ? '🏆 XC Accomplishments' : alumniPageTitle();
+            document.getElementById('navHeaderTitle').textContent = tab === 'yearbyyear' ? '📅 XC Year by Year' : tab === 'accomplishments' ? accomplishmentsPageTitle() : alumniPageTitle();
             const container = document.getElementById('navBody');
             if (tab === 'yearbyyear') {
                 renderYearByYearPage(container);
@@ -3080,7 +3124,7 @@
 
 
         function renderAccomplishmentsPage(container) {
-            if (navCache.accomplishments) { container.innerHTML = navCache.accomplishments; return; }
+            if (navCache.accomplishments[genderFilter]) { container.innerHTML = navCache.accomplishments[genderFilter]; return; }
 
             const OHSAA_IMG    = 'ohsaa.png';
             const REGIONAL_IMG = 'ohsaa.png';
@@ -3113,38 +3157,41 @@
                 return html;
             }
 
-            let html = `<div style="padding:12px 14px;">
-
+            // Builds the Program Snapshot block + all accomplishment sections
+            // for one program (boys or girls) — same markup, different data.
+            function buildProgramHtml(data) {
+                const anyStarred = data.indState.some(r => r.starred && r.starred.length > 0);
+                return `
                 <div class="program-snapshot">
                     <div class="program-snapshot-title">📊 Program Snapshot</div>
                     <div class="program-snapshot-grid">
                         <div class="program-snapshot-item">
-                            <div class="program-snapshot-value">${stateTeams.length}</div>
+                            <div class="program-snapshot-value">${data.stateTeams.length}</div>
                             <div class="program-snapshot-label">State Team Appearances</div>
                         </div>
                         <div class="program-snapshot-item">
-                            <div class="program-snapshot-value">${regQual.length}</div>
+                            <div class="program-snapshot-value">${data.regQual.length}</div>
                             <div class="program-snapshot-label">Regional Team Appearances</div>
                         </div>
                         <div class="program-snapshot-item">
-                            <div class="program-snapshot-value">${distChamp.length}</div>
+                            <div class="program-snapshot-value">${data.distChamp.length}</div>
                             <div class="program-snapshot-label">District Championships</div>
                         </div>
                         <div class="program-snapshot-item">
-                            <div class="program-snapshot-value">${fedChamp.length}</div>
+                            <div class="program-snapshot-value">${data.fedChamp.length}</div>
                             <div class="program-snapshot-label">Federal League Championships</div>
                         </div>
                         <div class="program-snapshot-item">
-                            <div class="program-snapshot-value">${starkChamp.length}</div>
+                            <div class="program-snapshot-value">${data.starkChamp.length}</div>
                             <div class="program-snapshot-label">Stark County Championships</div>
                         </div>
                         <div class="program-snapshot-item">
-                            <div class="program-snapshot-value">${indState.length}</div>
+                            <div class="program-snapshot-value">${data.indState.length}</div>
                             <div class="program-snapshot-label">Individual State Qualifiers</div>
                         </div>
                         <div class="program-snapshot-item program-snapshot-link" onclick="switchNavTab('alumni')">
                             <div>
-                                <div class="program-snapshot-value">${Object.keys(COLLEGE_RUNNERS).length}</div>
+                                <div class="program-snapshot-value">${Object.keys(data.collegeRunners).length}</div>
                                 <div class="program-snapshot-label">Collegiate Runners</div>
                             </div>
                             <svg class="card-chevron" viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
@@ -3152,11 +3199,11 @@
                     </div>
                 </div>
 
-                ${section('State Qualifying Teams','#166534','white',stateTeams,'accomp-state-chip',OHSAA_IMG,'State Runner-up / Individual Qualifiers (see below)',null)}
-                ${section('Regional Qualifying Teams','#3730a3','#e0e7ff',regQual,'accomp-reg-chip',REGIONAL_IMG,'Regional Runner-up',regRunnerup)}
-                ${section('District Champion','#14532d','#bbf7d0',distChamp,'accomp-dist-chip',DISTRICT_IMG,'District Runner-up',distRunnerup)}
-                ${section('Federal League Champion','#991b1b','#fecaca',fedChamp,'accomp-fed-chip',FED_IMG,'Federal League Runner-up',fedRunnerup)}
-                ${section('Stark County Champion','#1e3a5f','#bfdbfe',starkChamp,'accomp-stark-chip',STARK_IMG,'Stark County Runner-up',starkRunnerup)}
+                ${section('State Qualifying Teams','#166534','white',data.stateTeams,'accomp-state-chip',OHSAA_IMG,'State Runner-up / Individual Qualifiers (see below)',null)}
+                ${section('Regional Qualifying Teams','#3730a3','#e0e7ff',data.regQual,'accomp-reg-chip',REGIONAL_IMG,'Regional Runner-up',data.regRunnerup)}
+                ${section('District Champion','#14532d','#bbf7d0',data.distChamp,'accomp-dist-chip',DISTRICT_IMG,'District Runner-up',data.distRunnerup)}
+                ${section('Federal League Champion','#991b1b','#fecaca',data.fedChamp,'accomp-fed-chip',FED_IMG,'Federal League Runner-up',data.fedRunnerup)}
+                ${section('Stark County Champion','#1e3a5f','#bfdbfe',data.starkChamp,'accomp-stark-chip',STARK_IMG,'Stark County Runner-up',data.starkRunnerup)}
 
                 <div class="accomp-section">
                     <div class="accomp-section-title" style="background:#111827;color:white;">
@@ -3164,7 +3211,7 @@
                         <span>Individual State Meet Qualifiers</span>
                     </div>
                     <div style="border-radius:8px;overflow:hidden;border:1px solid var(--border);">
-                        ${indState.map((r,i) => `
+                        ${data.indState.map((r,i) => `
                             <div class="accomp-runner-row" style="background:${i%2===0?'var(--card-bg)':'var(--bg)'};color:var(--text);">
                                 <span style="font-weight:800;">${r.name}</span>
                                 <span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
@@ -3172,11 +3219,39 @@
                                 </span>
                             </div>`).join('')}
                     </div>
-                    <p style="font-size:10px;color:var(--text-muted);margin-top:6px;padding:0 2px;">✦ = All-Ohio</p>
-                </div>
-            </div>`;
+                    ${anyStarred ? `<p style="font-size:10px;color:var(--text-muted);margin-top:6px;padding:0 2px;">✦ = All-Ohio</p>` : ''}
+                </div>`;
+            }
 
-            navCache.accomplishments = html;
+            const boysData = {
+                stateTeams, regQual, regRunnerup, distChamp, distRunnerup,
+                fedChamp, fedRunnerup, starkChamp, starkRunnerup, indState,
+                collegeRunners: COLLEGE_RUNNERS
+            };
+            const girlsData = {
+                stateTeams: girlsStateTeams, regQual: girlsRegQual, regRunnerup: girlsRegRunnerup,
+                distChamp: girlsDistChamp, distRunnerup: girlsDistRunnerup,
+                fedChamp: girlsFedChamp, fedRunnerup: girlsFedRunnerup,
+                starkChamp: girlsStarkChamp, starkRunnerup: girlsStarkRunnerup, indState: girlsIndState,
+                collegeRunners: GIRLS_COLLEGE_RUNNERS
+            };
+
+            let inner;
+            if (genderFilter === 'M') {
+                inner = buildProgramHtml(boysData);
+            } else if (genderFilter === 'F') {
+                inner = buildProgramHtml(girlsData);
+            } else {
+                inner = `
+                    <div class="accomp-gender-divider">🏆 Boys</div>
+                    ${buildProgramHtml(boysData)}
+                    <div class="accomp-gender-divider">🏆 Girls</div>
+                    ${buildProgramHtml(girlsData)}`;
+            }
+
+            const html = `<div style="padding:12px 14px;">${inner}</div>`;
+
+            navCache.accomplishments[genderFilter] = html;
             container.innerHTML = html;
         }
 
